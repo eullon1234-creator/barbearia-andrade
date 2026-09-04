@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, Check, Clock, User, Phone, CreditCard, 
   ChevronRight, ChevronLeft, Scissors, AlertCircle, Palmtree, MessageCircle,
-  Calendar, Download, Copy, Flame, Sparkles, QrCode, FileText
+  Calendar, Download, Copy, Flame, Sparkles, QrCode, FileText,
+  Zap, ChevronDown, ChevronUp, Sun, CalendarDays
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useBarber } from '../context/BarberContext';
@@ -13,9 +14,15 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
 
   const [step, setStep] = useState(1);
   const [selectedService, setSelectedService] = useState(initialService || (services.length > 0 ? services[0] : null));
+  const [isChangingService, setIsChangingService] = useState(false);
   const [selectedExtras, setSelectedExtras] = useState([]);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
+  const [selectedWeekTab, setSelectedWeekTab] = useState(0); // 0 = Esta Semana, 1 = Próxima Semana
+  const [week1Days, setWeek1Days] = useState([]);
+  const [week2Days, setWeek2Days] = useState([]);
+  const [todayDay, setTodayDay] = useState(null);
+  const [tomorrowDay, setTomorrowDay] = useState(null);
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [observation, setObservation] = useState('');
@@ -37,8 +44,6 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
     }
   }, []);
 
-  const [availableDays, setAvailableDays] = useState([]);
-
   useEffect(() => {
     if (initialService) {
       setSelectedService(initialService);
@@ -48,37 +53,66 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
   }, [initialService, services]);
 
   useEffect(() => {
-    const days = [];
     const today = new Date();
-    
-    for (let i = 0; i < 12; i++) {
-      const d = new Date(today);
-      d.setDate(today.getDate() + i);
-      
+    const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const weekNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+    const formatDayObj = (d, index) => {
       const dayOfWeek = d.getDay(); // 0 = Dom, 6 = Sáb
       const isSunday = dayOfWeek === 0;
-
       const dateStr = d.toISOString().split('T')[0];
       const dayNumber = d.getDate().toString().padStart(2, '0');
-      const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
       const monthName = monthNames[d.getMonth()];
-      
-      const weekNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
       const weekName = weekNames[dayOfWeek];
 
-      days.push({
+      return {
         dateStr,
-        label: i === 0 ? 'Hoje' : i === 1 ? 'Amanhã' : `${weekName}, ${dayNumber}/${monthName}`,
+        label: index === 0 ? 'Hoje' : index === 1 ? 'Amanhã' : `${weekName}, ${dayNumber}/${monthName}`,
         weekName,
         dayNumber,
+        monthName,
         isSunday,
-      });
-    }
+        dayOfWeek,
+      };
+    };
 
-    setAvailableDays(days);
-    const firstValid = days.find(d => !d.isSunday);
-    if (firstValid && !selectedDate) {
-      setSelectedDate(firstValid.dateStr);
+    const d0 = new Date(today);
+    const todayFormatted = formatDayObj(d0, 0);
+    setTodayDay(todayFormatted);
+
+    const d1 = new Date(today);
+    d1.setDate(today.getDate() + 1);
+    const tomorrowFormatted = formatDayObj(d1, 1);
+    setTomorrowDay(tomorrowFormatted);
+
+    // Próximos 6 dias para Semana 1 (Grade 3x2)
+    const w1 = [];
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      w1.push(formatDayObj(d, i));
+    }
+    setWeek1Days(w1);
+
+    // Próximos 6 dias para Semana 2 (Grade 3x2)
+    const w2 = [];
+    for (let i = 6; i < 12; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      w2.push(formatDayObj(d, i));
+    }
+    setWeek2Days(w2);
+
+    // Seleciona o primeiro dia válido por padrão
+    if (!selectedDate) {
+      if (!todayFormatted.isSunday) {
+        setSelectedDate(todayFormatted.dateStr);
+      } else if (!tomorrowFormatted.isSunday) {
+        setSelectedDate(tomorrowFormatted.dateStr);
+      } else {
+        const firstValid = w1.find(d => !d.isSunday);
+        if (firstValid) setSelectedDate(firstValid.dateStr);
+      }
     }
   }, []);
 
@@ -348,73 +382,115 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
         {/* Conteúdo com Scroll */}
         <div className="p-4 overflow-y-auto flex-1 space-y-4 text-neutral-200">
 
-          {/* ================= PASSO 1: SERVIÇO & BARBEIRO ================= */}
+          {/* ================= PASSO 1: SERVIÇO & ADICIONAIS ================= */}
           {step === 1 && (
-            <div className="space-y-4">
+            <div className="space-y-3.5">
               {/* Card do Barbeiro */}
-              <div className="p-3 rounded-2xl bg-dark-850 border border-dark-750 flex items-center gap-3">
-                <img
-                  src={profile.image}
-                  alt={profile.owner}
-                  className="w-12 h-12 rounded-full object-cover border border-gold-500/40"
-                />
-                <div>
-                  <span className="text-[10px] text-gold-400 font-bold uppercase tracking-wider">Profissional Responsável</span>
-                  <h4 className="text-sm font-extrabold text-white">{profile.owner}</h4>
-                  <p className="text-[11px] text-neutral-400">{profile.role}</p>
+              <div className="p-3 rounded-2xl bg-dark-850 border border-dark-750 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={profile.image}
+                    alt={profile.owner}
+                    className="w-11 h-11 rounded-full object-cover border border-gold-500/40"
+                  />
+                  <div>
+                    <span className="text-[10px] text-gold-400 font-bold uppercase tracking-wider">Profissional Responsável</span>
+                    <h4 className="text-sm font-extrabold text-white">{profile.owner}</h4>
+                    <p className="text-[11px] text-neutral-400">{profile.role}</p>
+                  </div>
                 </div>
+                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full border border-emerald-500/20">
+                  Online
+                </span>
               </div>
 
-              {/* Lista para Escolher / Trocar Serviço */}
-              <div>
-                <label className="block text-xs font-bold text-neutral-300 uppercase tracking-wider mb-2">
-                  Selecione o Serviço:
-                </label>
-                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                  {services.map((svc) => (
-                    <div
-                      key={svc.id}
-                      onClick={() => setSelectedService(svc)}
-                      className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                        selectedService && selectedService.id === svc.id
-                          ? 'bg-gold-500/10 border-gold-500 text-white shadow-gold-glow-sm'
-                          : 'bg-dark-850 border-dark-750 text-neutral-300 hover:border-neutral-600'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                          selectedService && selectedService.id === svc.id ? 'border-gold-500 bg-gold-500' : 'border-neutral-500'
-                        }`}>
-                          {selectedService && selectedService.id === svc.id && <Check className="w-2.5 h-2.5 text-dark-950 stroke-[3]" />}
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-white">{svc.name}</p>
-                          <span className="text-[11px] text-neutral-400 flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-gold-400" /> {svc.duration}
-                          </span>
-                        </div>
+              {/* Serviço Selecionado com Opção de Alterar */}
+              <div className="p-3 rounded-2xl bg-dark-850 border border-gold-500/30 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold text-neutral-400">
+                    Serviço Selecionado:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsChangingService(!isChangingService)}
+                    className="text-[11px] font-bold text-gold-400 hover:text-gold-300 flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>{isChangingService ? 'Fechar Lista' : 'Trocar Serviço'}</span>
+                    {isChangingService ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+
+                {selectedService && !isChangingService && (
+                  <div className="p-2.5 rounded-xl bg-gold-500/10 border border-gold-500/40 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-4 h-4 rounded-full border-2 border-gold-500 bg-gold-500 flex items-center justify-center">
+                        <Check className="w-2.5 h-2.5 text-dark-950 stroke-[3]" />
                       </div>
-                      <span className="text-xs font-extrabold text-gold-400">
-                        R$ {parseFloat(svc.price).toFixed(2).replace('.', ',')}
-                      </span>
+                      <div>
+                        <h4 className="text-xs font-black text-white">{selectedService.name}</h4>
+                        <span className="text-[10px] text-neutral-400 flex items-center gap-1">
+                          <Clock className="w-2.5 h-2.5 text-gold-400" /> {selectedService.duration}
+                        </span>
+                      </div>
                     </div>
-                  ))}
-                </div>
+                    <span className="text-xs font-black text-gold-400">
+                      R$ {parseFloat(selectedService.price).toFixed(2).replace('.', ',')}
+                    </span>
+                  </div>
+                )}
+
+                {/* Lista Completa de Serviços quando clica em Trocar */}
+                {isChangingService && (
+                  <div className="space-y-1.5 pt-1 animate-in fade-in duration-150">
+                    {services.map((svc) => (
+                      <div
+                        key={svc.id}
+                        onClick={() => {
+                          setSelectedService(svc);
+                          setIsChangingService(false);
+                        }}
+                        className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                          selectedService && selectedService.id === svc.id
+                            ? 'bg-gold-500/15 border-gold-500 text-white shadow-gold-glow-sm'
+                            : 'bg-dark-900 border-dark-750 text-neutral-300 hover:border-neutral-600'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                            selectedService && selectedService.id === svc.id ? 'border-gold-500 bg-gold-500' : 'border-neutral-500'
+                          }`}>
+                            {selectedService && selectedService.id === svc.id && <Check className="w-2.5 h-2.5 text-dark-950 stroke-[3]" />}
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-white">{svc.name}</p>
+                            <span className="text-[10px] text-neutral-400 flex items-center gap-1">
+                              <Clock className="w-2.5 h-2.5 text-gold-400" /> {svc.duration}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-xs font-black text-gold-400">
+                          R$ {parseFloat(svc.price).toFixed(2).replace('.', ',')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Adicionais Recomendados (Turbine seu corte) */}
+              {/* Adicionais Recomendados (Turbine seu corte) em Grade 2 Colunas */}
               {extras && extras.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-2">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
                     <label className="text-xs font-bold text-neutral-300 uppercase tracking-wider flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5 text-gold-400" />
                       <span>Turbine seu Corte (Adicionais):</span>
                     </label>
                     <span className="text-[10px] text-gold-400/90 font-bold bg-gold-500/10 px-2 py-0.5 rounded-full border border-gold-500/20">
-                      1 Toque
+                      Opcional
                     </span>
                   </div>
-                  <div className="space-y-2 max-h-[190px] overflow-y-auto pr-1">
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {extras.map((extra) => {
                       const isSelected = selectedExtras.some(e => e.id === extra.id);
                       return (
@@ -427,20 +503,20 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
                               : 'bg-dark-850/80 border-dark-750 text-neutral-300 hover:border-neutral-600'
                           }`}
                         >
-                          <div className="flex items-center gap-2.5">
-                            <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-colors ${
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className={`w-3.5 h-3.5 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
                               isSelected ? 'border-gold-500 bg-gold-500' : 'border-neutral-500'
                             }`}>
-                              {isSelected && <Check className="w-3 h-3 text-dark-950 stroke-[3]" />}
+                              {isSelected && <Check className="w-2.5 h-2.5 text-dark-950 stroke-[3]" />}
                             </div>
-                            <div>
-                              <p className="text-xs font-bold text-white leading-tight">{extra.name}</p>
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-white leading-tight truncate">{extra.name}</p>
                               <span className="text-[10px] text-neutral-400 flex items-center gap-1">
                                 <Clock className="w-2.5 h-2.5 text-gold-400" /> +{extra.durationMinutes} min
                               </span>
                             </div>
                           </div>
-                          <span className="text-xs font-black text-gold-400">
+                          <span className="text-xs font-black text-gold-400 shrink-0 ml-2">
                             + R$ {parseFloat(extra.price).toFixed(2).replace('.', ',')}
                           </span>
                         </div>
@@ -468,51 +544,138 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
             </div>
           )}
 
-          {/* ================= PASSO 2: DATA & HORÁRIO ================= */}
+          {/* ================= PASSO 2: DATA & HORÁRIO (GRADE SEMANAL DIRETA) ================= */}
           {step === 2 && (
             <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-neutral-300 uppercase tracking-wider mb-2">
-                  1. Escolha o Dia:
-                </label>
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-                  {availableDays.map((day) => (
+              {/* 1. Seleção de Dias com Grade Semanal Direta (Zero Arrastar) */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-neutral-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-gold-400" />
+                    <span>1. Escolha a Data:</span>
+                  </label>
+                  
+                  {/* Seletor de Semana */}
+                  <div className="flex items-center bg-dark-950 p-0.5 rounded-lg border border-dark-800 text-[10px]">
                     <button
-                      key={day.dateStr}
-                      disabled={day.isSunday}
-                      onClick={() => {
-                        setSelectedDate(day.dateStr);
-                        setSelectedTime('');
-                      }}
-                      className={`min-w-[70px] p-2.5 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer ${
-                        day.isSunday
-                          ? 'opacity-40 bg-dark-900 border-dark-800 cursor-not-allowed'
-                          : selectedDate === day.dateStr
-                          ? 'bg-gold-500 text-dark-950 border-gold-400 shadow-gold-glow-sm font-bold'
-                          : 'bg-dark-850 border-dark-750 text-neutral-300 hover:border-neutral-600'
+                      type="button"
+                      onClick={() => setSelectedWeekTab(0)}
+                      className={`px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${
+                        selectedWeekTab === 0 ? 'bg-gold-500 text-dark-950' : 'text-neutral-400 hover:text-white'
                       }`}
                     >
-                      <span className="text-[10px] uppercase font-semibold">{day.weekName}</span>
-                      <span className="text-base font-black my-0.5">{day.dayNumber}</span>
-                      <span className="text-[9px] opacity-80">{day.isSunday ? 'Fechado' : 'Aberto'}</span>
+                      Esta Semana
                     </button>
-                  ))}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedWeekTab(1)}
+                      className={`px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${
+                        selectedWeekTab === 1 ? 'bg-gold-500 text-dark-950' : 'text-neutral-400 hover:text-white'
+                      }`}
+                    >
+                      Próxima Semana
+                    </button>
+                  </div>
+                </div>
+
+                {/* Atalhos Rápidos: Hoje e Amanhã */}
+                {todayDay && tomorrowDay && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      disabled={todayDay.isSunday}
+                      onClick={() => {
+                        setSelectedDate(todayDay.dateStr);
+                        setSelectedTime('');
+                      }}
+                      className={`p-2 rounded-xl border flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                        todayDay.isSunday
+                          ? 'opacity-40 bg-dark-900 border-dark-800 cursor-not-allowed text-neutral-500'
+                          : selectedDate === todayDay.dateStr
+                          ? 'bg-gold-500 text-dark-950 border-gold-400 font-black shadow-gold-glow-sm'
+                          : 'bg-dark-850 border-dark-750 text-neutral-200 hover:border-gold-500/40'
+                      }`}
+                    >
+                      <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400 shrink-0" />
+                      <div className="text-left leading-tight">
+                        <span className="text-[9px] uppercase font-bold block opacity-80">Rápido</span>
+                        <span className="text-xs font-black">Hoje ({todayDay.dayNumber}/{todayDay.monthName})</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={tomorrowDay.isSunday}
+                      onClick={() => {
+                        setSelectedDate(tomorrowDay.dateStr);
+                        setSelectedTime('');
+                      }}
+                      className={`p-2 rounded-xl border flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                        tomorrowDay.isSunday
+                          ? 'opacity-40 bg-dark-900 border-dark-800 cursor-not-allowed text-neutral-500'
+                          : selectedDate === tomorrowDay.dateStr
+                          ? 'bg-gold-500 text-dark-950 border-gold-400 font-black shadow-gold-glow-sm'
+                          : 'bg-dark-850 border-dark-750 text-neutral-200 hover:border-gold-500/40'
+                      }`}
+                    >
+                      <CalendarDays className="w-3.5 h-3.5 text-gold-400 shrink-0" />
+                      <div className="text-left leading-tight">
+                        <span className="text-[9px] uppercase font-bold block opacity-80">Próximo</span>
+                        <span className="text-xs font-black">Amanhã ({tomorrowDay.dayNumber}/{tomorrowDay.monthName})</span>
+                      </div>
+                    </button>
+                  </div>
+                )}
+
+                {/* Grade Semanal de 6 Dias (3 colunas x 2 linhas) - SEM ARRASTAR */}
+                <div className="grid grid-cols-3 gap-2">
+                  {(selectedWeekTab === 0 ? week1Days : week2Days).map((day) => {
+                    const isSelected = selectedDate === day.dateStr;
+                    return (
+                      <button
+                        key={day.dateStr}
+                        type="button"
+                        disabled={day.isSunday}
+                        onClick={() => {
+                          setSelectedDate(day.dateStr);
+                          setSelectedTime('');
+                        }}
+                        className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer ${
+                          day.isSunday
+                            ? 'opacity-35 bg-dark-950 border-dark-855 cursor-not-allowed text-neutral-500'
+                            : isSelected
+                            ? 'bg-gold-500 text-dark-950 border-gold-400 shadow-gold-glow-sm font-black ring-1 ring-gold-400'
+                            : 'bg-dark-850 border-dark-750 text-neutral-200 hover:border-neutral-600 hover:bg-dark-800'
+                        }`}
+                      >
+                        <span className="text-[10px] uppercase font-extrabold tracking-wider">{day.weekName}</span>
+                        <span className="text-sm font-black my-0.5">{day.dayNumber}/{day.monthName}</span>
+                        <span className="text-[9px] opacity-80 font-medium">
+                          {day.isSunday ? 'Fechado' : isSelected ? 'Selecionado' : 'Disponível'}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold text-neutral-300 uppercase tracking-wider">
-                    2. Escolha o Horário:
-                  </label>
-                  <span className="text-[11px] text-neutral-400">
-                    Slots de {scheduleConfig.slotInterval || 30} min
+              {/* 2. Seleção de Horários por Turno */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Sun className="w-3.5 h-3.5 text-amber-400" />
+                    <label className="text-xs font-bold text-neutral-300 uppercase tracking-wider">
+                      2. Horários ({selectedDate ? (new Date(selectedDate.split('-')[0], selectedDate.split('-')[1] - 1, selectedDate.split('-')[2]).getDay() === 6 ? 'Sábado' : 'Tarde') : 'Dia'}):
+                    </label>
+                  </div>
+                  <span className="text-[10px] text-neutral-400">
+                    {timeSlots.filter(s => s.available).length} horários livres
                   </span>
                 </div>
 
                 {/* Gatilho de Urgência: Vagas Restantes */}
                 {isUrgent && (
-                  <div className="mb-3 px-3 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center gap-2 text-amber-300 text-xs font-bold animate-pulse">
+                  <div className="px-3 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center gap-2 text-amber-300 text-xs font-bold animate-pulse">
                     <Flame className="w-4 h-4 text-amber-400 shrink-0 fill-amber-400" />
                     <span>Atenção: Restam apenas {availableSlotsCount} {availableSlotsCount === 1 ? 'vaga' : 'vagas'} para este dia!</span>
                   </div>
@@ -524,18 +687,19 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
                     <p className="text-xs text-neutral-300">Barbearia fechada neste dia.</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-[220px] overflow-y-auto pr-1">
+                  <div className="grid grid-cols-4 gap-2">
                     {timeSlots.map((slot) => (
                       <button
                         key={slot.time}
+                        type="button"
                         disabled={!slot.available}
                         onClick={() => setSelectedTime(slot.time)}
                         className={`py-2 px-1 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                           !slot.available
-                            ? 'bg-dark-950 text-neutral-600 border-dark-800 line-through cursor-not-allowed'
+                            ? 'bg-dark-950 text-neutral-600 border-dark-850 line-through cursor-not-allowed opacity-50'
                             : selectedTime === slot.time
-                            ? 'bg-gold-500 text-dark-950 border-gold-400 shadow-gold-glow-sm'
-                            : 'bg-dark-850 text-neutral-200 border-dark-750 hover:border-gold-500/40'
+                            ? 'bg-gold-500 text-dark-950 border-gold-400 shadow-gold-glow-sm font-black'
+                            : 'bg-dark-850 text-neutral-200 border-dark-750 hover:border-gold-500/40 hover:bg-dark-800'
                         }`}
                       >
                         {slot.time}
@@ -546,14 +710,16 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
 
                 {/* Horário com Término Estimado */}
                 {selectedTime && (
-                  <div className="mt-3 p-2.5 rounded-xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-between text-xs animate-in fade-in duration-200">
-                    <div className="flex items-center gap-2 text-neutral-300">
+                  <div className="p-2.5 rounded-xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-between text-xs animate-in fade-in duration-200">
+                    <div className="flex items-center gap-2 text-neutral-200">
                       <Clock className="w-4 h-4 text-gold-400 shrink-0" />
                       <span>
                         Previsão: <strong className="text-white">{selectedTime}</strong> às <strong className="text-gold-400">{getEndTime(selectedTime, totalDurationMinutes)}</strong>
                       </span>
                     </div>
-                    <span className="text-[11px] font-bold text-neutral-400">({totalDurationMinutes} min)</span>
+                    <span className="text-[10px] font-bold text-gold-400 bg-gold-500/10 px-2 py-0.5 rounded-full border border-gold-500/20">
+                      {totalDurationMinutes} min
+                    </span>
                   </div>
                 )}
               </div>
