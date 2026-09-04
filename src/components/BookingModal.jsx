@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, Check, Clock, User, Phone, CreditCard, 
-  ChevronRight, ChevronLeft, Scissors, AlertCircle, Palmtree, MessageCircle 
+  ChevronRight, ChevronLeft, Scissors, AlertCircle, Palmtree, MessageCircle,
+  Calendar, Download
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useBarber } from '../context/BarberContext';
+import { getGoogleCalendarUrl, downloadIcsFile } from '../utils/calendarUtils';
 
 export default function BookingModal({ isOpen, onClose, initialService }) {
   const { services, profile, scheduleConfig, appointments, addAppointment } = useBarber();
@@ -540,7 +542,7 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
           )}
 
           {step === 4 && (
-            <div className="w-full space-y-2">
+            <div className="w-full space-y-2.5">
               <button
                 onClick={handleConfirmWhatsApp}
                 className="w-full py-3.5 px-5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-dark-950 font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/30 cursor-pointer animate-bounce"
@@ -548,10 +550,49 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
                 <MessageCircle className="w-5 h-5 fill-dark-950" />
                 <span>Confirmar via WhatsApp</span>
               </button>
+
+              {/* Botões de Lembrete no Calendário */}
+              <div className="pt-1 border-t border-dark-800">
+                <span className="text-[10px] text-neutral-400 uppercase font-bold block text-center mb-1.5">
+                  Salvar na Sua Agenda:
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <a
+                    href={getGoogleCalendarUrl({
+                      title: `Corte: ${selectedService ? selectedService.name : 'Barbearia Andrade'}`,
+                      description: `Agendamento com ${profile.owner} (${profile.name}). Pagamento: ${paymentMethod}`,
+                      location: profile.address || 'Povoado Cigana, Tuntum - MA',
+                      date: selectedDate,
+                      time: selectedTime,
+                    })}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="py-2.5 px-3 rounded-xl bg-dark-850 hover:bg-dark-800 text-neutral-200 border border-dark-700 flex items-center justify-center gap-1.5 text-xs font-bold transition-all text-center"
+                  >
+                    <Calendar className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span>Google Agenda</span>
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() => downloadIcsFile({
+                      title: `Corte: ${selectedService ? selectedService.name : 'Barbearia Andrade'}`,
+                      description: `Agendamento com ${profile.owner} (${profile.name}). Pagamento: ${paymentMethod}`,
+                      location: profile.address || 'Povoado Cigana, Tuntum - MA',
+                      date: selectedDate,
+                      time: selectedTime,
+                    })}
+                    className="py-2.5 px-3 rounded-xl bg-dark-850 hover:bg-dark-800 text-neutral-200 border border-dark-700 flex items-center justify-center gap-1.5 text-xs font-bold transition-all text-center cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                    <span>Apple / Celular</span>
+                  </button>
+                </div>
+              </div>
               
               <button
                 onClick={onClose}
-                className="w-full py-2 text-center text-xs text-neutral-400 hover:text-white"
+                className="w-full py-1.5 text-center text-xs text-neutral-400 hover:text-white cursor-pointer"
               >
                 Concluir e Fechar
               </button>

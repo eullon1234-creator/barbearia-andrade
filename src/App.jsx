@@ -10,6 +10,9 @@ import Footer from './components/Footer';
 import BottomBar from './components/BottomBar';
 import BookingModal from './components/BookingModal';
 import BarberDashboard from './components/BarberDashboard';
+import PwaInstallBanner from './components/PwaInstallBanner';
+import FeedInstagramLookbook from './components/FeedInstagramLookbook';
+import ReviewsSection from './components/ReviewsSection';
 import { Smartphone, Monitor } from 'lucide-react';
 
 export default function App() {
@@ -127,6 +130,9 @@ export default function App() {
             {/* Navbar sem botão de alternar */}
             <Navbar onOpenBooking={() => handleOpenBooking(null)} />
 
+            {/* Banner de Instalação PWA */}
+            <PwaInstallBanner />
+
             {/* Conteúdo Principal do Cliente */}
             <main className="pb-8">
               {/* Hero Banner */}
@@ -137,6 +143,12 @@ export default function App() {
 
               {/* Catálogo de Serviços */}
               <ServicesSection onOpenBooking={handleOpenBooking} />
+
+              {/* Feed de Cortes Estilo Instagram */}
+              <FeedInstagramLookbook onOpenBooking={handleOpenBooking} />
+
+              {/* Avaliações & Depoimentos Reais */}
+              <ReviewsSection />
 
               {/* Comodidades da Barbearia */}
               <AmenitiesSection />
