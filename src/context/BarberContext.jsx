@@ -13,6 +13,8 @@ const STORAGE_KEYS = {
   GALLERY: 'andrade_gallery_v2',
   FEED_POSTS: 'andrade_feed_posts_v1',
   EXTRAS: 'andrade_extras_v1',
+  CLIENT_SESSION: 'andrade_current_client_v1',
+  CLIENTS_DB: 'andrade_clients_db_v1',
 };
 
 // Paletas de cores pré-configuradas para qualquer estilo de barbearia
@@ -363,6 +365,116 @@ export function BarberProvider({ children }) {
     localStorage.setItem(STORAGE_KEYS.EXTRAS, JSON.stringify(extras));
   }, [extras]);
 
+  // 10. Sessão e Contas dos Clientes
+  const [currentClient, setCurrentClient] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.CLIENT_SESSION);
+      if (saved) return JSON.parse(saved);
+      // Fallback para andrade_client_info_v1 se o cliente já tiver agendado antes
+      const oldInfo = localStorage.getItem('andrade_client_info_v1');
+      if (oldInfo) {
+        const parsed = JSON.parse(oldInfo);
+        if (parsed.name && parsed.phone) {
+          const client = {
+            name: parsed.name,
+            phone: parsed.phone,
+            cleanPhone: parsed.phone.replace(/\D/g, ''),
+            createdAt: new Date().toISOString(),
+          };
+          localStorage.setItem(STORAGE_KEYS.CLIENT_SESSION, JSON.stringify(client));
+          return client;
+        }
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  const clientLogin = ({ name, phone }) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    const clientData = {
+      name: name.trim(),
+      phone: phone.trim(),
+      cleanPhone,
+      createdAt: new Date().toISOString(),
+    };
+
+    setCurrentClient(clientData);
+    try {
+      localStorage.setItem(STORAGE_KEYS.CLIENT_SESSION, JSON.stringify(clientData));
+      localStorage.setItem('andrade_client_info_v1', JSON.stringify({ name: clientData.name, phone: clientData.phone }));
+      
+      // Atualiza o banco geral de clientes
+      const savedDb = localStorage.getItem(STORAGE_KEYS.CLIENTS_DB);
+      const db = savedDb ? JSON.parse(savedDb) : {};
+      db[cleanPhone] = {
+        ...(db[cleanPhone] || {}),
+        ...clientData,
+        lastActive: new Date().toISOString(),
+      };
+      localStorage.setItem(STORAGE_KEYS.CLIENTS_DB, JSON.stringify(db));
+      window.dispatchEvent(new Event('andrade_client_auth_changed'));
+    } catch (e) {
+      console.error(e);
+    }
+    return clientData;
+  };
+
+  const clientLogout = () => {
+    setCurrentClient(null);
+    try {
+      localStorage.removeItem(STORAGE_KEYS.CLIENT_SESSION);
+      window.dispatchEvent(new Event('andrade_client_auth_changed'));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const getClientAppointments = (phoneOrCleanPhone) => {
+    if (!phoneOrCleanPhone) return [];
+    const clean = phoneOrCleanPhone.replace(/\D/g, '');
+    return appointments.filter(a => {
+      const aClean = (a.phone || '').replace(/\D/g, '');
+      return aClean === clean;
+    });
+  };
+
+  const getClientStats = (phoneOrCleanPhone) => {
+    const clientApts = getClientAppointments(phoneOrCleanPhone);
+    const validCuts = clientApts.filter(a => a.status !== 'Cancelado');
+    const totalCuts = validCuts.length;
+    const totalSpent = validCuts.reduce((acc, a) => acc + (parseFloat(a.price) || 0), 0);
+
+    // Serviço mais frequente
+    const serviceCounts = {};
+    validCuts.forEach(a => {
+      const s = a.baseService || a.service || 'Corte Masculino';
+      serviceCounts[s] = (serviceCounts[s] || 0) + 1;
+    });
+    let favoriteService = 'Corte Masculino';
+    let maxCount = 0;
+    Object.entries(serviceCounts).forEach(([srv, count]) => {
+      if (count > maxCount) {
+        maxCount = count;
+        favoriteService = srv;
+      }
+    });
+
+    // Cartão fidelidade: cortes para o próximo benefício (a cada 10 cortes)
+    const cutsTowardsReward = totalCuts % 10;
+    const cutsRemaining = 10 - cutsTowardsReward;
+
+    return {
+      totalCuts,
+      totalSpent,
+      favoriteService,
+      cutsTowardsReward,
+      cutsRemaining,
+      appointments: clientApts,
+    };
+  };
+
   // Ações de Serviços
   const addService = (newService) => {
     const created = {
@@ -640,6 +752,12 @@ export function BarberProvider({ children }) {
 
         extras,
         setExtras,
+
+        currentClient,
+        clientLogin,
+        clientLogout,
+        getClientAppointments,
+        getClientStats,
 
         exportConfiguration,
         importConfiguration,

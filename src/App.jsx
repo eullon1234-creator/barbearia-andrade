@@ -15,6 +15,8 @@ import FeedInstagramLookbook from './components/FeedInstagramLookbook';
 import InstagramFeedView from './components/InstagramFeedView';
 import ReviewsSection from './components/ReviewsSection';
 import ClientActiveBookingBanner from './components/ClientActiveBookingBanner';
+import ClientAuthModal from './components/ClientAuthModal';
+import ClientProfileModal from './components/ClientProfileModal';
 import { Smartphone, Monitor } from 'lucide-react';
 
 export default function App() {
@@ -30,6 +32,8 @@ export default function App() {
   const [clientTab, setClientTab] = useState('home'); // 'home' | 'feed'
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [bookingService, setBookingService] = useState(null);
+  const [isClientAuthOpen, setIsClientAuthOpen] = useState(false);
+  const [isClientProfileOpen, setIsClientProfileOpen] = useState(false);
   const [isPhoneFrame, setIsPhoneFrame] = useState(true);
 
   useEffect(() => {
@@ -140,6 +144,8 @@ export default function App() {
                 onOpenBooking={handleOpenBooking}
                 clientTab={clientTab}
                 onSelectTab={setClientTab}
+                onOpenClientAuth={() => setIsClientAuthOpen(true)}
+                onOpenClientProfile={() => setIsClientProfileOpen(true)}
               />
             </>
           ) : (
@@ -149,6 +155,8 @@ export default function App() {
                 onOpenBooking={() => handleOpenBooking(null)}
                 clientTab={clientTab}
                 onSelectTab={setClientTab}
+                onOpenClientAuth={() => setIsClientAuthOpen(true)}
+                onOpenClientProfile={() => setIsClientProfileOpen(true)}
               />
 
               {/* Banner de Agendamento Ativo do Cliente */}
@@ -188,6 +196,8 @@ export default function App() {
                   onOpenBooking={handleOpenBooking}
                   clientTab={clientTab}
                   onSelectTab={setClientTab}
+                  onOpenClientAuth={() => setIsClientAuthOpen(true)}
+                  onOpenClientProfile={() => setIsClientProfileOpen(true)}
                 />
               </main>
             </>
@@ -200,6 +210,20 @@ export default function App() {
         isOpen={isBookingOpen}
         onClose={() => setIsBookingOpen(false)}
         initialService={bookingService}
+      />
+
+      {/* Modal de Autenticação / Login VIP do Cliente */}
+      <ClientAuthModal
+        isOpen={isClientAuthOpen}
+        onClose={() => setIsClientAuthOpen(false)}
+        onSuccess={() => setIsClientProfileOpen(true)}
+      />
+
+      {/* Modal de Perfil / Histórico / Cartão Fidelidade VIP */}
+      <ClientProfileModal
+        isOpen={isClientProfileOpen}
+        onClose={() => setIsClientProfileOpen(false)}
+        onOpenBooking={handleOpenBooking}
       />
     </div>
   );

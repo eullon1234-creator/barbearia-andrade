@@ -10,7 +10,7 @@ import { useBarber } from '../context/BarberContext';
 import { getGoogleCalendarUrl, downloadIcsFile } from '../utils/calendarUtils';
 
 export default function BookingModal({ isOpen, onClose, initialService }) {
-  const { services, profile, scheduleConfig, appointments, addAppointment, extras } = useBarber();
+  const { services, profile, scheduleConfig, appointments, addAppointment, extras, currentClient, clientLogin } = useBarber();
 
   const [step, setStep] = useState(1);
   const [selectedService, setSelectedService] = useState(initialService || (services.length > 0 ? services[0] : null));
@@ -31,19 +31,24 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
   const [copiedPix, setCopiedPix] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // Auto-preenchimento dos dados do cliente se já agendou antes
+  // Auto-preenchimento dos dados do cliente logado ou já cadastrado
   useEffect(() => {
-    try {
-      const savedInfo = localStorage.getItem('andrade_client_info_v1');
-      if (savedInfo) {
-        const parsed = JSON.parse(savedInfo);
-        if (parsed.name && !clientName) setClientName(parsed.name);
-        if (parsed.phone && !clientPhone) setClientPhone(parsed.phone);
+    if (currentClient) {
+      if (currentClient.name) setClientName(currentClient.name);
+      if (currentClient.phone) setClientPhone(currentClient.phone);
+    } else {
+      try {
+        const savedInfo = localStorage.getItem('andrade_client_info_v1');
+        if (savedInfo) {
+          const parsed = JSON.parse(savedInfo);
+          if (parsed.name && !clientName) setClientName(parsed.name);
+          if (parsed.phone && !clientPhone) setClientPhone(parsed.phone);
+        }
+      } catch (e) {
+        // ignore
       }
-    } catch (e) {
-      // ignore
     }
-  }, []);
+  }, [currentClient]);
 
   useEffect(() => {
     if (initialService) {
@@ -295,6 +300,11 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
     
     // Registra no banco de agendamentos para alimentar o painel e faturamento
     addAppointment(newAppointment);
+
+    // Salva sessão do cliente automaticamente se ainda não estiver logado
+    if (!currentClient && clientName && clientPhone) {
+      clientLogin({ name: clientName, phone: clientPhone });
+    }
 
     // Salva agendamento ativo e dados do cliente para persistência local
     try {
@@ -759,6 +769,18 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
           {/* ================= PASSO 3: DADOS DO CLIENTE & PREFERÊNCIAS ================= */}
           {step === 3 && (
             <div className="space-y-4">
+              {currentClient && (
+                <div className="flex items-center justify-between p-3 rounded-xl bg-gold-500/10 border border-gold-500/20 text-gold-400">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span className="text-xs font-semibold">Conectado como Cliente VIP</span>
+                  </div>
+                  <span className="text-xs font-bold text-white">
+                    {currentClient.name}
+                  </span>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold text-neutral-300 mb-1.5 flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5 text-gold-400" />

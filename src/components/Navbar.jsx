@@ -1,10 +1,10 @@
 import React from 'react';
-import { Scissors, MessageCircle } from 'lucide-react';
+import { Scissors, MessageCircle, User } from 'lucide-react';
 import { useBarber } from '../context/BarberContext';
 import { InstagramIcon } from './Icons';
 
-export default function Navbar({ onOpenBooking, clientTab = 'home', onSelectTab }) {
-  const { profile, scheduleConfig } = useBarber();
+export default function Navbar({ onOpenBooking, clientTab = 'home', onSelectTab, onOpenClientAuth, onOpenClientProfile }) {
+  const { profile, scheduleConfig, currentClient } = useBarber();
 
   const isOpenNow = () => {
     if (scheduleConfig.vacationMode) return false;
@@ -91,6 +91,31 @@ export default function Navbar({ onOpenBooking, clientTab = 'home', onSelectTab 
             >
               <InstagramIcon className="w-3.5 h-3.5" />
               <span>{clientTab === 'feed' ? 'Início' : 'Feed'}</span>
+            </button>
+          )}
+
+          {/* Botão de Conta do Cliente (Entrar ou Perfil VIP) */}
+          {currentClient ? (
+            <button
+              type="button"
+              onClick={onOpenClientProfile}
+              className="px-2.5 py-1.5 rounded-xl bg-gold-500/15 hover:bg-gold-500/25 border border-gold-500/40 text-gold-300 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+              title="Minha Conta VIP (Ver cortes e fidelidade)"
+            >
+              <div className="w-4 h-4 rounded-full bg-gold-500 text-dark-950 font-black text-[9px] flex items-center justify-center shrink-0">
+                {currentClient.name.charAt(0).toUpperCase()}
+              </div>
+              <span className="max-w-[70px] truncate">{currentClient.name.split(' ')[0]}</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onOpenClientAuth}
+              className="px-2.5 py-1.5 rounded-xl bg-dark-850 hover:bg-dark-800 border border-dark-700 hover:border-gold-500/40 text-neutral-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+              title="Entrar para salvar cortes"
+            >
+              <User className="w-3.5 h-3.5 text-gold-400" />
+              <span>Entrar</span>
             </button>
           )}
 

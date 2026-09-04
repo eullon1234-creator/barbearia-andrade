@@ -1,14 +1,14 @@
 import React from 'react';
-import { Home, Calendar, MessageCircle } from 'lucide-react';
+import { Home, Calendar, MessageCircle, User } from 'lucide-react';
 import { useBarber } from '../context/BarberContext';
 import { InstagramIcon } from './Icons';
 
-export default function BottomBar({ onOpenBooking, clientTab = 'home', onSelectTab }) {
-  const { profile } = useBarber();
+export default function BottomBar({ onOpenBooking, clientTab = 'home', onSelectTab, onOpenClientAuth, onOpenClientProfile }) {
+  const { profile, currentClient } = useBarber();
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 p-2 bg-dark-950/95 backdrop-blur-xl border-t border-dark-800 shadow-[0_-10px_25px_rgba(0,0,0,0.8)]">
-      <div className="max-w-md mx-auto grid grid-cols-4 gap-1.5 items-center">
+      <div className="max-w-md mx-auto grid grid-cols-5 gap-1 items-center">
         
         {/* Aba Início */}
         <button
@@ -20,7 +20,7 @@ export default function BottomBar({ onOpenBooking, clientTab = 'home', onSelectT
           }`}
         >
           <Home className={`w-4 h-4 ${clientTab === 'home' ? 'theme-text-accent' : ''}`} />
-          <span className="text-[10px] tracking-tight">Início</span>
+          <span className="text-[9px] tracking-tight">Início</span>
         </button>
 
         {/* Aba Feed Instagram */}
@@ -36,7 +36,31 @@ export default function BottomBar({ onOpenBooking, clientTab = 'home', onSelectT
             <InstagramIcon className={`w-4 h-4 ${clientTab === 'feed' ? 'text-pink-400' : ''}`} />
             <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
           </div>
-          <span className="text-[10px] tracking-tight">Feed Insta</span>
+          <span className="text-[9px] tracking-tight">Feed</span>
+        </button>
+
+        {/* Aba Minha Conta / Perfil VIP */}
+        <button
+          onClick={() => {
+            if (currentClient) {
+              onOpenClientProfile && onOpenClientProfile();
+            } else {
+              onOpenClientAuth && onOpenClientAuth();
+            }
+          }}
+          className="py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1 transition-all cursor-pointer text-neutral-400 hover:text-white hover:bg-dark-900"
+          title={currentClient ? 'Ver Minha Conta' : 'Fazer Login'}
+        >
+          {currentClient ? (
+            <div className="w-4 h-4 rounded-full bg-gold-500 text-dark-950 font-black text-[9px] flex items-center justify-center shadow-gold-glow-sm">
+              {currentClient.name.charAt(0).toUpperCase()}
+            </div>
+          ) : (
+            <User className="w-4 h-4 text-gold-400" />
+          )}
+          <span className="text-[9px] tracking-tight truncate max-w-[50px] font-medium">
+            {currentClient ? currentClient.name.split(' ')[0] : 'Conta'}
+          </span>
         </button>
 
         {/* Botão de WhatsApp */}
@@ -48,7 +72,7 @@ export default function BottomBar({ onOpenBooking, clientTab = 'home', onSelectT
           title="Falar no WhatsApp"
         >
           <MessageCircle className="w-4 h-4" />
-          <span className="text-[10px] tracking-tight text-neutral-300">WhatsApp</span>
+          <span className="text-[9px] tracking-tight text-neutral-300">Whats</span>
         </a>
 
         {/* Botão de Agendamento Rápido */}
@@ -58,7 +82,7 @@ export default function BottomBar({ onOpenBooking, clientTab = 'home', onSelectT
           title="Agendar horário online"
         >
           <Calendar className="w-4 h-4" />
-          <span className="text-[10px] uppercase tracking-tighter">Agendar</span>
+          <span className="text-[9px] uppercase tracking-tighter">Agendar</span>
         </button>
 
       </div>
