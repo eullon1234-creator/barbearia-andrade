@@ -2,7 +2,8 @@
 
 Aplicativo web **Mobile-First / PWA** de alto padrão para a **Barbearia Andrade**, gerenciada por **Saymon Andrade** em Tuntum - MA (Povoado Cigana).
 
-🔗 **Acesse online:** [https://eullon1234-creator.github.io/barbearia-andrade/](https://eullon1234-creator.github.io/barbearia-andrade/)
+🔗 **Link dos Clientes (Agendamento):** [https://eullon1234-creator.github.io/barbearia-andrade/](https://eullon1234-creator.github.io/barbearia-andrade/)  
+💈 **Link Exclusivo do Barbeiro (Painel):** [https://eullon1234-creator.github.io/barbearia-andrade/#/barbeiro](https://eullon1234-creator.github.io/barbearia-andrade/#/barbeiro)
 
 ---
 
