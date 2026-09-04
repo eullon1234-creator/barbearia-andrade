@@ -1,8 +1,10 @@
 import React from 'react';
-import { MapPin, Navigation, Clock, Calendar, ExternalLink } from 'lucide-react';
-import { BARBERSHOP_DATA } from '../data/barberData';
+import { MapPin, Navigation, Clock, ExternalLink } from 'lucide-react';
+import { useBarber } from '../context/BarberContext';
 
 export default function LocationSection() {
+  const { profile, scheduleConfig } = useBarber();
+
   return (
     <section className="px-4 py-4" id="localizacao">
       <div className="rounded-2xl bg-card-gradient border border-dark-700/80 p-4 relative overflow-hidden">
@@ -21,14 +23,14 @@ export default function LocationSection() {
         {/* Card do Endereço */}
         <div className="p-3 rounded-xl bg-dark-850/90 border border-dark-700/60 mb-3.5">
           <p className="text-xs font-semibold text-neutral-200 mb-1">
-            {BARBERSHOP_DATA.address}
+            {profile.address}
           </p>
           <p className="text-[11px] text-gold-400 font-medium">
-            Próximo aos principais pontos do Povoado Cigana
+            Povoado Cigana, Tuntum - MA
           </p>
 
           <a
-            href={BARBERSHOP_DATA.mapsUrl}
+            href={profile.mapsUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-3 w-full py-2.5 px-3 rounded-lg bg-dark-800 hover:bg-dark-750 text-gold-400 hover:text-gold-300 border border-gold-500/30 flex items-center justify-center gap-2 text-xs font-bold transition-all"
@@ -39,14 +41,16 @@ export default function LocationSection() {
           </a>
         </div>
 
-        {/* Horários de Funcionamento */}
+        {/* Horários de Funcionamento Dinâmicos */}
         <div className="space-y-2 text-xs">
           <div className="flex items-center justify-between py-1.5 border-b border-dark-800">
             <span className="text-neutral-400 flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-gold-400" />
               Segunda a Sexta
             </span>
-            <span className="text-white font-semibold">13:00 às 18:00</span>
+            <span className="text-white font-semibold">
+              {scheduleConfig.weekdaysStart} às {scheduleConfig.weekdaysEnd}
+            </span>
           </div>
 
           <div className="flex items-center justify-between py-1.5 border-b border-dark-800">
@@ -54,7 +58,9 @@ export default function LocationSection() {
               <Clock className="w-3.5 h-3.5 text-gold-400" />
               Sábado
             </span>
-            <span className="text-white font-semibold">08:00 às 13:00</span>
+            <span className="text-white font-semibold">
+              {scheduleConfig.saturdayStart} às {scheduleConfig.saturdayEnd}
+            </span>
           </div>
 
           <div className="flex items-center justify-between py-1.5">

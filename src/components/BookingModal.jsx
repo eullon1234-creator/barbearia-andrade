@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  X, Check, Calendar, Clock, User, Phone, CreditCard, 
-  ChevronRight, ChevronLeft, Scissors, Sparkles, MessageCircle, AlertCircle 
+  X, Check, Clock, User, Phone, CreditCard, 
+  ChevronRight, ChevronLeft, Scissors, AlertCircle, Palmtree, MessageCircle 
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { BARBERSHOP_DATA, getAvailableTimeSlots } from '../data/barberData';
+import { useBarber } from '../context/BarberContext';
 
 export default function BookingModal({ isOpen, onClose, initialService }) {
+  const { services, profile, scheduleConfig, appointments } = useBarber();
+
   const [step, setStep] = useState(1);
-  const [selectedService, setSelectedService] = useState(initialService || BARBERSHOP_DATA.services[0]);
+  const [selectedService, setSelectedService] = useState(initialService || (services.length > 0 ? services[0] : null));
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [clientName, setClientName] = useState('');
@@ -16,14 +18,15 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
   const [paymentMethod, setPaymentMethod] = useState('Pix');
   const [errors, setErrors] = useState({});
 
-  // Gera os próximos 10 dias disponíveis para agendamento
   const [availableDays, setAvailableDays] = useState([]);
 
   useEffect(() => {
     if (initialService) {
       setSelectedService(initialService);
+    } else if (services.length > 0 && !selectedService) {
+      setSelectedService(services[0]);
     }
-  }, [initialService]);
+  }, [initialService, services]);
 
   useEffect(() => {
     const days = [];
@@ -54,12 +57,51 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
     }
 
     setAvailableDays(days);
-    // Seleciona o primeiro dia não-domingo
     const firstValid = days.find(d => !d.isSunday);
     if (firstValid && !selectedDate) {
       setSelectedDate(firstValid.dateStr);
     }
   }, []);
+
+  // Geração dinâmica de slots de horários baseados no scheduleConfig do barbeiro
+  const generateTimeSlots = (dateString) => {
+    if (!dateString) return [];
+    const parts = dateString.split('-');
+    const dateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    const dayOfWeek = dateObj.getDay();
+
+    if (dayOfWeek === 0) return []; // Domingo fechado
+
+    const isSat = dayOfWeek === 6;
+    const startStr = isSat ? (scheduleConfig.saturdayStart || '08:00') : (scheduleConfig.weekdaysStart || '13:00');
+    const endStr = isSat ? (scheduleConfig.saturdayEnd || '13:00') : (scheduleConfig.weekdaysEnd || '18:00');
+    const interval = scheduleConfig.slotInterval || 30;
+
+    const [startH, startM] = startStr.split(':').map(Number);
+    const [endH, endM] = endStr.split(':').map(Number);
+
+    const startMinutes = startH * 60 + startM;
+    const endMinutes = endH * 60 + endM;
+
+    const slots = [];
+    for (let m = startMinutes; m < endMinutes; m += interval) {
+      const h = Math.floor(m / 60);
+      const min = m % 60;
+      const timeFormatted = `${h.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+      
+      // Verifica se já está agendado na lista de agendamentos
+      const isBooked = appointments.some(a => a.time === timeFormatted);
+
+      slots.push({
+        time: timeFormatted,
+        available: !isBooked,
+      });
+    }
+
+    return slots;
+  };
+
+  const timeSlots = generateTimeSlots(selectedDate);
 
   // Máscara automática de telefone (99) 99999-9999
   const handlePhoneChange = (e) => {
@@ -76,10 +118,6 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
     setClientPhone(val);
   };
 
-  // Slots de horários para a data selecionada
-  const timeSlots = getAvailableTimeSlots(selectedDate);
-
-  // Validação do passo 3
   const handleNextToSummary = () => {
     const errs = {};
     if (!clientName.trim()) {
@@ -98,7 +136,6 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
     setErrors({});
     setStep(4);
 
-    // Efeito de confetes ao chegar na confirmação
     try {
       confetti({
         particleCount: 80,
@@ -111,23 +148,22 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
     }
   };
 
-  // Formata mensagem e redireciona para o WhatsApp do Saymon
   const handleConfirmWhatsApp = () => {
     const formattedDate = selectedDate.split('-').reverse().join('/');
     const message = `Olá Saymon! Gostaria de confirmar meu agendamento na Barbearia Andrade:\n\n` +
-      `💈 *Serviço:* ${selectedService.name}\n` +
-      `👤 *Profissional:* ${BARBERSHOP_DATA.owner}\n` +
+      `💈 *Serviço:* ${selectedService ? selectedService.name : 'Corte'}\n` +
+      `👤 *Profissional:* ${profile.owner}\n` +
       `📅 *Data:* ${formattedDate}\n` +
       `⏰ *Horário:* ${selectedTime}\n` +
-      `💰 *Valor:* R$ ${selectedService.price.toFixed(2).replace('.', ',')}\n` +
+      `💰 *Valor:* R$ ${selectedService ? parseFloat(selectedService.price).toFixed(2).replace('.', ',') : '0,00'}\n` +
       `💳 *Pagamento:* ${paymentMethod}\n\n` +
       `👤 *Cliente:* ${clientName}\n` +
       `📱 *Contato:* ${clientPhone}\n` +
-      `📍 *Local:* Povoado Cigana, Tuntum - MA\n\n` +
+      `📍 *Local:* ${profile.address}\n\n` +
       `Pode confirmar este horário para mim?`;
 
     const encodedMessage = encodeURIComponent(message);
-    const waUrl = `https://wa.me/${BARBERSHOP_DATA.whatsappNumber}?text=${encodedMessage}`;
+    const waUrl = `https://wa.me/${profile.whatsappNumber}?text=${encodedMessage}`;
     window.open(waUrl, '_blank');
   };
 
@@ -159,7 +195,15 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
           </button>
         </div>
 
-        {/* Barra de Progresso em 4 Passos */}
+        {/* Alerta se o barbeiro ativou Modo Férias */}
+        {scheduleConfig.vacationMode && (
+          <div className="p-3 bg-rose-500/20 border-b border-rose-500/40 text-rose-200 text-xs flex items-center gap-2">
+            <Palmtree className="w-4 h-4 text-rose-400 flex-shrink-0" />
+            <span>{scheduleConfig.vacationMessage}</span>
+          </div>
+        )}
+
+        {/* Barra de Progresso */}
         <div className="grid grid-cols-4 gap-1 px-4 pt-2 pb-1 bg-dark-950">
           {[1, 2, 3, 4].map((i) => (
             <div
@@ -180,14 +224,14 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
               {/* Card do Barbeiro */}
               <div className="p-3 rounded-2xl bg-dark-850 border border-dark-750 flex items-center gap-3">
                 <img
-                  src={BARBERSHOP_DATA.images.barber}
-                  alt={BARBERSHOP_DATA.owner}
+                  src={profile.image}
+                  alt={profile.owner}
                   className="w-12 h-12 rounded-full object-cover border border-gold-500/40"
                 />
                 <div>
-                  <span className="text-[10px] text-gold-400 font-bold uppercase tracking-wider">Profissional Selecionado</span>
-                  <h4 className="text-sm font-extrabold text-white">{BARBERSHOP_DATA.owner}</h4>
-                  <p className="text-[11px] text-neutral-400">Especialista em Degradê & Barba</p>
+                  <span className="text-[10px] text-gold-400 font-bold uppercase tracking-wider">Profissional Responsável</span>
+                  <h4 className="text-sm font-extrabold text-white">{profile.owner}</h4>
+                  <p className="text-[11px] text-neutral-400">{profile.role}</p>
                 </div>
               </div>
 
@@ -197,21 +241,21 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
                   Selecione o Serviço:
                 </label>
                 <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
-                  {BARBERSHOP_DATA.services.map((svc) => (
+                  {services.map((svc) => (
                     <div
                       key={svc.id}
                       onClick={() => setSelectedService(svc)}
                       className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                        selectedService.id === svc.id
+                        selectedService && selectedService.id === svc.id
                           ? 'bg-gold-500/10 border-gold-500 text-white shadow-gold-glow-sm'
                           : 'bg-dark-850 border-dark-750 text-neutral-300 hover:border-neutral-600'
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
                         <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                          selectedService.id === svc.id ? 'border-gold-500 bg-gold-500' : 'border-neutral-500'
+                          selectedService && selectedService.id === svc.id ? 'border-gold-500 bg-gold-500' : 'border-neutral-500'
                         }`}>
-                          {selectedService.id === svc.id && <Check className="w-2.5 h-2.5 text-dark-950 stroke-[3]" />}
+                          {selectedService && selectedService.id === svc.id && <Check className="w-2.5 h-2.5 text-dark-950 stroke-[3]" />}
                         </div>
                         <div>
                           <p className="text-xs font-bold text-white">{svc.name}</p>
@@ -221,7 +265,7 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
                         </div>
                       </div>
                       <span className="text-xs font-extrabold text-gold-400">
-                        R$ {svc.price.toFixed(2).replace('.', ',')}
+                        R$ {parseFloat(svc.price).toFixed(2).replace('.', ',')}
                       </span>
                     </div>
                   ))}
@@ -233,7 +277,6 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
           {/* ================= PASSO 2: DATA & HORÁRIO ================= */}
           {step === 2 && (
             <div className="space-y-4">
-              {/* Seletor de Data */}
               <div>
                 <label className="block text-xs font-bold text-neutral-300 uppercase tracking-wider mb-2">
                   1. Escolha o Dia:
@@ -245,7 +288,7 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
                       disabled={day.isSunday}
                       onClick={() => {
                         setSelectedDate(day.dateStr);
-                        setSelectedTime(''); // reseta horário ao trocar o dia
+                        setSelectedTime('');
                       }}
                       className={`min-w-[70px] p-2.5 rounded-xl border flex flex-col items-center justify-center transition-all ${
                         day.isSunday
@@ -263,14 +306,13 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
                 </div>
               </div>
 
-              {/* Grade de Horários */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-bold text-neutral-300 uppercase tracking-wider">
                     2. Escolha o Horário:
                   </label>
                   <span className="text-[11px] text-neutral-400">
-                    {selectedDate.includes('-0') ? 'Horários Livres' : ''}
+                    Slots de {scheduleConfig.slotInterval || 30} min
                   </span>
                 </div>
 
@@ -278,7 +320,6 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
                   <div className="p-4 rounded-xl bg-dark-850 border border-dark-750 text-center">
                     <AlertCircle className="w-5 h-5 text-amber-400 mx-auto mb-1.5" />
                     <p className="text-xs text-neutral-300">Barbearia fechada neste dia.</p>
-                    <p className="text-[11px] text-neutral-400 mt-0.5">Por favor, selecione outro dia acima.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-[220px] overflow-y-auto pr-1">
@@ -307,7 +348,6 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
           {/* ================= PASSO 3: DADOS DO CLIENTE & PAGAMENTO ================= */}
           {step === 3 && (
             <div className="space-y-4">
-              {/* Nome */}
               <div>
                 <label className="block text-xs font-bold text-neutral-300 mb-1.5 flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5 text-gold-400" />
@@ -327,7 +367,6 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
                 )}
               </div>
 
-              {/* WhatsApp */}
               <div>
                 <label className="block text-xs font-bold text-neutral-300 mb-1.5 flex items-center gap-1.5">
                   <Phone className="w-3.5 h-3.5 text-gold-400" />
@@ -348,7 +387,6 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
                 )}
               </div>
 
-              {/* Forma de Pagamento */}
               <div>
                 <label className="block text-xs font-bold text-neutral-300 mb-2 flex items-center gap-1.5">
                   <CreditCard className="w-3.5 h-3.5 text-gold-400" />
@@ -380,9 +418,8 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
           )}
 
           {/* ================= PASSO 4: RESUMO & TICKET VIP ================= */}
-          {step === 4 && (
+          {step === 4 && selectedService && (
             <div className="space-y-4 animate-in zoom-in-95 duration-200">
-              {/* Ticket VIP */}
               <div className="relative rounded-2xl bg-card-gradient border border-gold-500/50 p-4 shadow-gold-glow overflow-hidden">
                 <div className="absolute top-0 right-0 px-3 py-1 bg-gold-gradient text-dark-950 text-[10px] font-black uppercase tracking-wider rounded-bl-xl shadow">
                   Resumo VIP
@@ -393,12 +430,11 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
                     <Scissors className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-extrabold text-white">Barbearia Andrade</h4>
-                    <p className="text-[10px] text-neutral-400">Saymon Andrade • Povoado Cigana</p>
+                    <h4 className="text-sm font-extrabold text-white">{profile.name}</h4>
+                    <p className="text-[10px] text-neutral-400">{profile.owner} • Povoado Cigana</p>
                   </div>
                 </div>
 
-                {/* Linha pontilhada divisora */}
                 <div className="border-t border-dashed border-dark-700 my-3" />
 
                 <div className="space-y-2 text-xs">
@@ -407,7 +443,7 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
                     <span className="font-bold text-white text-right">{selectedService.name}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-neutral-400">Data Agendada:</span>
+                    <span className="text-neutral-400">Data:</span>
                     <span className="font-bold text-white">
                       {selectedDate.split('-').reverse().join('/')}
                     </span>
@@ -426,13 +462,12 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
                   </div>
                 </div>
 
-                {/* Linha divisora */}
                 <div className="border-t border-dashed border-dark-700 my-3" />
 
                 <div className="flex justify-between items-center">
                   <span className="text-xs uppercase font-bold text-neutral-400">Total a pagar:</span>
                   <span className="text-lg font-black text-gold-400">
-                    R$ {selectedService.price.toFixed(2).replace('.', ',')}
+                    R$ {parseFloat(selectedService.price).toFixed(2).replace('.', ',')}
                   </span>
                 </div>
               </div>

@@ -1,8 +1,12 @@
 import React from 'react';
-import { Snowflake, Wifi, Coffee, Music, Car, Sparkles } from 'lucide-react';
-import { BARBERSHOP_DATA } from '../data/barberData';
+import { Snowflake, Wifi, Coffee, Music, Car, Sparkles, Gamepad2, Check } from 'lucide-react';
+import { useBarber } from '../context/BarberContext';
 
 export default function AmenitiesSection() {
+  const { amenities } = useBarber();
+
+  const activeAmenities = amenities.filter(a => a.enabled);
+
   const getIcon = (iconName) => {
     switch (iconName) {
       case 'Snowflake': return <Snowflake className="w-4 h-4 text-gold-400" />;
@@ -10,9 +14,12 @@ export default function AmenitiesSection() {
       case 'Coffee': return <Coffee className="w-4 h-4 text-gold-400" />;
       case 'Music': return <Music className="w-4 h-4 text-gold-400" />;
       case 'Car': return <Car className="w-4 h-4 text-gold-400" />;
+      case 'Gamepad2': return <Gamepad2 className="w-4 h-4 text-gold-400" />;
       default: return <Sparkles className="w-4 h-4 text-gold-400" />;
     }
   };
+
+  if (activeAmenities.length === 0) return null;
 
   return (
     <section className="px-4 py-3">
@@ -23,7 +30,7 @@ export default function AmenitiesSection() {
         </h3>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-          {BARBERSHOP_DATA.amenities.map((item) => (
+          {activeAmenities.map((item) => (
             <div
               key={item.id}
               className="flex items-center gap-2 p-2 rounded-xl bg-dark-850/80 border border-dark-750/60"

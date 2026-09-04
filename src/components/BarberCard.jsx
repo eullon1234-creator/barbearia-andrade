@@ -1,14 +1,11 @@
 import React from 'react';
-import { Scissors, CheckCircle, Flame, Star, ShieldCheck } from 'lucide-react';
-import { BARBERSHOP_DATA } from '../data/barberData';
+import { CheckCircle, Flame, Star, ShieldCheck } from 'lucide-react';
+import { useBarber } from '../context/BarberContext';
 
 export default function BarberCard() {
-  const specialties = [
-    'Degradê / Fade Navalhado',
-    'Barba na Toalha Quente',
-    'Cortes Sociais & Clássicos',
-    'Pigmentação & Sobrancelha',
-  ];
+  const { profile, scheduleConfig } = useBarber();
+
+  const isAvailable = !scheduleConfig.vacationMode && !scheduleConfig.status.includes('Pausa');
 
   return (
     <section className="px-4 py-3">
@@ -21,12 +18,17 @@ export default function BarberCard() {
           <div className="relative">
             <div className="w-16 h-16 rounded-full p-0.5 bg-gradient-to-tr from-gold-400 via-gold-600 to-amber-200 shadow-gold-glow-sm">
               <img
-                src={BARBERSHOP_DATA.images.barber}
-                alt={BARBERSHOP_DATA.owner}
+                src={profile.image}
+                alt={profile.owner}
                 className="w-full h-full object-cover rounded-full"
               />
             </div>
-            <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-dark-950 p-1 rounded-full border-2 border-dark-900" title="Disponível">
+            <div 
+              className={`absolute -bottom-1 -right-1 p-1 rounded-full border-2 border-dark-900 ${
+                isAvailable ? 'bg-emerald-500 text-dark-950' : 'bg-amber-500 text-dark-950'
+              }`} 
+              title={isAvailable ? "Disponível para agendamento" : "Em intervalo / pausa"}
+            >
               <CheckCircle className="w-3 h-3 text-dark-950 stroke-[3]" />
             </div>
           </div>
@@ -35,11 +37,11 @@ export default function BarberCard() {
           <div className="flex-1">
             <div className="flex items-center gap-1.5">
               <h3 className="text-base font-extrabold text-white">
-                {BARBERSHOP_DATA.owner}
+                {profile.owner}
               </h3>
               <ShieldCheck className="w-4 h-4 text-gold-400" />
             </div>
-            <p className="text-xs text-gold-400 font-medium">Barbeiro Especialista & Visagista</p>
+            <p className="text-xs text-gold-400 font-medium">{profile.role}</p>
             
             <div className="flex items-center gap-2 mt-1 text-[11px] text-neutral-400">
               <span className="flex items-center gap-0.5 text-amber-300 font-semibold">
@@ -53,14 +55,14 @@ export default function BarberCard() {
           </div>
         </div>
 
-        {/* Especialidades em Tags */}
+        {/* Especialidades Dinâmicas em Tags */}
         <div className="pt-2 border-t border-dark-700/60">
           <p className="text-[11px] text-neutral-400 uppercase tracking-wider font-semibold mb-2 flex items-center gap-1">
             <Flame className="w-3 h-3 text-gold-400" />
             <span>Especialidades & Técnicas</span>
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {specialties.map((item, idx) => (
+            {profile.specialties.map((item, idx) => (
               <span
                 key={idx}
                 className="text-[11px] px-2.5 py-1 rounded-md bg-dark-800 text-neutral-300 border border-dark-700/70"
