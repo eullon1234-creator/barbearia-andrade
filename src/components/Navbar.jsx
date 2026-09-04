@@ -1,62 +1,89 @@
 import React from 'react';
 import { Scissors, MessageCircle } from 'lucide-react';
-import { BARBERSHOP_DATA } from '../data/barberData';
+import { useBarber } from '../context/BarberContext';
 
 export default function Navbar({ onOpenBooking }) {
-  // Determina se está aberto baseado na hora atual
+  const { profile, scheduleConfig } = useBarber();
+
   const isOpenNow = () => {
+    if (scheduleConfig.vacationMode) return false;
     const now = new Date();
     const day = now.getDay();
     const hours = now.getHours();
     
-    // Domingo
     if (day === 0) return false;
-    // Sábado: 8h às 13h
     if (day === 6) return hours >= 8 && hours < 13;
-    // Seg a Sex: 13h às 18h
     return hours >= 13 && hours < 18;
   };
 
   const open = isOpenNow();
+
+  // Divide o nome da barbearia se houver duas palavras (ex: BARBEARIA ANDRADE)
+  const nameParts = (profile.name || 'Barbearia Andrade').split(' ');
+  const firstName = nameParts[0] || 'BARBEARIA';
+  const restName = nameParts.slice(1).join(' ') || '';
 
   return (
     <header className="sticky top-0 z-40 bg-dark-950/90 backdrop-blur-md border-b border-dark-800 transition-all">
       <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
         {/* Logo & Nome */}
         <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center text-dark-950 shadow-gold-glow-sm">
-            <Scissors className="w-5 h-5 -rotate-45 font-bold" />
-          </div>
+          {profile.logoImage ? (
+            <img
+              src={profile.logoImage}
+              alt={profile.name}
+              className="w-10 h-10 rounded-xl object-contain bg-dark-900 border border-dark-750 p-1"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-xl theme-gradient-accent flex items-center justify-center text-dark-950 theme-shadow-glow-sm">
+              <Scissors className="w-5 h-5 -rotate-45 font-bold" />
+            </div>
+          )}
+
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-extrabold text-base tracking-wide text-white font-heading">
-                BARBEARIA
+                {firstName}
               </span>
-              <span className="font-extrabold text-base tracking-wide text-gold-400 font-heading">
-                ANDRADE
-              </span>
+              {restName && (
+                <span className="font-extrabold text-base tracking-wide theme-text-accent font-heading">
+                  {restName}
+                </span>
+              )}
             </div>
             
             {/* Tag de Status */}
             <div className="flex items-center gap-1.5 text-[11px]">
-              <span className={`w-2 h-2 rounded-full ${open ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+              <span className={`w-2 h-2 rounded-full ${
+                scheduleConfig.vacationMode 
+                  ? 'bg-rose-500' 
+                  : open 
+                  ? 'bg-emerald-500 animate-pulse' 
+                  : 'bg-amber-500'
+              }`} />
               <span className="text-neutral-300 font-medium">
-                {open ? 'Aberto Agora' : 'Abre às 13:00'}
+                {scheduleConfig.vacationMode 
+                  ? 'Em Férias' 
+                  : open 
+                  ? 'Aberto Agora' 
+                  : `Abre às ${scheduleConfig.weekdaysStart || '13:00'}`}
               </span>
               <span className="text-neutral-500">•</span>
-              <span className="text-neutral-400 text-[10px]">Tuntum - MA</span>
+              <span className="text-neutral-400 text-[10px] truncate max-w-[120px]">
+                {profile.address ? profile.address.split(',')[0] : 'Tuntum - MA'}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Botão de Contato Rápido WhatsApp no Topo */}
+        {/* Botão de WhatsApp */}
         <div className="flex items-center">
           <a
-            href={`https://wa.me/${BARBERSHOP_DATA.whatsappNumber}?text=Olá%20Saymon!%20Gostaria%20de%20tirar%20uma%20dúvida%20sobre%20a%20Barbearia%20Andrade.`}
+            href={`https://wa.me/${profile.whatsappNumber}?text=Olá%20${encodeURIComponent(profile.owner)}!%20Gostaria%20de%20tirar%20uma%20dúvida.`}
             target="_blank"
             rel="noopener noreferrer"
             className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5 text-xs font-bold transition-all shadow-sm"
-            title="Falar com Saymon Andrade no WhatsApp"
+            title="Falar no WhatsApp"
           >
             <MessageCircle className="w-3.5 h-3.5 fill-emerald-400/20" />
             <span>WhatsApp</span>

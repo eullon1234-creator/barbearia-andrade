@@ -4,6 +4,7 @@ import Hero from './components/Hero';
 import BarberCard from './components/BarberCard';
 import ServicesSection from './components/ServicesSection';
 import AmenitiesSection from './components/AmenitiesSection';
+import GallerySection from './components/GallerySection';
 import LocationSection from './components/LocationSection';
 import Footer from './components/Footer';
 import BottomBar from './components/BottomBar';
@@ -137,8 +138,11 @@ export default function App() {
               {/* Catálogo de Serviços */}
               <ServicesSection onOpenBooking={handleOpenBooking} />
 
-              {/* Comodidades */}
+              {/* Comodidades da Barbearia */}
               <AmenitiesSection />
+
+              {/* Galeria de Fotos do Espaço */}
+              <GallerySection />
 
               {/* Endereço & Mapa */}
               <LocationSection />

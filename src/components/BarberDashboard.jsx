@@ -5,24 +5,40 @@ import {
   Phone, Scissors, Share2, Check, ExternalLink, 
   ShieldCheck, Sparkles, AlertCircle, Settings, 
   Building2, X, RotateCcw, ChevronRight, User, Eye, EyeOff,
-  Upload, Camera, Loader2
+  Upload, Camera, Loader2, Palette, Image as ImageIcon, Download
 } from 'lucide-react';
-import { useBarber } from '../context/BarberContext';
+import { useBarber, THEME_PRESETS } from '../context/BarberContext';
 import { uploadImageToCloudinary } from '../services/cloudinary';
 
 export default function BarberDashboard({ onBackToClientView }) {
   const {
+    theme, selectThemePreset, setCustomColor,
     services, addService, updateService, deleteService,
     amenities, toggleAmenity, addAmenity, deleteAmenity,
+    galleryImages, addGalleryImage, removeGalleryImage,
     profile, updateProfile, addSpecialty, removeSpecialty,
     scheduleConfig, updateSchedule, triggerQuickPause, resumeStatus, toggleVacationMode,
     appointments, updateAppointmentStatus, addAppointment, deleteAppointment,
-    resetToFactoryDefaults
+    exportConfiguration, importConfiguration, resetToFactoryDefaults
   } = useBarber();
 
-  const [activeSubTab, setActiveSubTab] = useState('agenda'); // 'agenda' | 'servicos' | 'horarios' | 'perfil'
+  const [activeSubTab, setActiveSubTab] = useState('agenda'); // 'agenda' | 'servicos' | 'temas' | 'horarios' | 'perfil'
   const [copiedLink, setCopiedLink] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
+
+  // Estados de Uploads via Cloudinary
+  const [isUploadingServiceImage, setIsUploadingServiceImage] = useState(false);
+  const [isUploadingProfileImage, setIsUploadingProfileImage] = useState(false);
+  const [isUploadingCoverImage, setIsUploadingCoverImage] = useState(false);
+  const [isUploadingLogoImage, setIsUploadingLogoImage] = useState(false);
+  const [isUploadingGalleryImage, setIsUploadingGalleryImage] = useState(false);
+
+  const serviceFileInputRef = useRef(null);
+  const profileFileInputRef = useRef(null);
+  const coverFileInputRef = useRef(null);
+  const logoFileInputRef = useRef(null);
+  const galleryFileInputRef = useRef(null);
+  const jsonFileInputRef = useRef(null);
 
   // Estados de formulários / modais
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
@@ -38,44 +54,7 @@ export default function BarberDashboard({ onBackToClientView }) {
 
   const [newSpecialtyText, setNewSpecialtyText] = useState('');
   const [newAmenityText, setNewAmenityText] = useState('');
-  const [isUploadingServiceImage, setIsUploadingServiceImage] = useState(false);
-  const [isUploadingProfileImage, setIsUploadingProfileImage] = useState(false);
-  const serviceFileInputRef = useRef(null);
-  const profileFileInputRef = useRef(null);
-
-  const handleServiceFileUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setIsUploadingServiceImage(true);
-      showToast('Enviando foto para o Cloudinary...');
-      const imageUrl = await uploadImageToCloudinary(file);
-      setServiceForm(prev => ({ ...prev, image: imageUrl }));
-      showToast('Foto do corte enviada com sucesso!');
-    } catch (err) {
-      alert('Erro ao enviar imagem: ' + (err.message || 'Erro no upload'));
-    } finally {
-      setIsUploadingServiceImage(false);
-    }
-  };
-
-  const handleProfileFileUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setIsUploadingProfileImage(true);
-      showToast('Enviando sua foto para o Cloudinary...');
-      const imageUrl = await uploadImageToCloudinary(file);
-      updateProfile({ image: imageUrl });
-      showToast('Foto de perfil atualizada com sucesso!');
-    } catch (err) {
-      alert('Erro ao enviar imagem: ' + (err.message || 'Erro no upload'));
-    } finally {
-      setIsUploadingProfileImage(false);
-    }
-  };
+  const [customColorInput, setCustomColorInput] = useState(theme.primary || '#D4AF37');
 
   const showToast = (msg) => {
     setNotificationMessage(msg);
@@ -91,7 +70,104 @@ export default function BarberDashboard({ onBackToClientView }) {
     });
   };
 
-  // Cálculo financeiro
+  // Upload handlers
+  const handleServiceFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsUploadingServiceImage(true);
+      showToast('Enviando foto do corte para o Cloudinary...');
+      const imageUrl = await uploadImageToCloudinary(file);
+      setServiceForm(prev => ({ ...prev, image: imageUrl }));
+      showToast('Foto do corte enviada com sucesso!');
+    } catch (err) {
+      alert('Erro ao enviar imagem: ' + (err.message || 'Erro no upload'));
+    } finally {
+      setIsUploadingServiceImage(false);
+    }
+  };
+
+  const handleProfileFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsUploadingProfileImage(true);
+      showToast('Enviando sua foto para o Cloudinary...');
+      const imageUrl = await uploadImageToCloudinary(file);
+      updateProfile({ image: imageUrl });
+      showToast('Foto de perfil atualizada com sucesso!');
+    } catch (err) {
+      alert('Erro ao enviar imagem: ' + (err.message || 'Erro no upload'));
+    } finally {
+      setIsUploadingProfileImage(false);
+    }
+  };
+
+  const handleCoverFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsUploadingCoverImage(true);
+      showToast('Enviando foto de capa para o Cloudinary...');
+      const imageUrl = await uploadImageToCloudinary(file);
+      updateProfile({ coverImage: imageUrl });
+      showToast('Foto de capa atualizada com sucesso!');
+    } catch (err) {
+      alert('Erro ao enviar imagem: ' + (err.message || 'Erro no upload'));
+    } finally {
+      setIsUploadingCoverImage(false);
+    }
+  };
+
+  const handleLogoFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsUploadingLogoImage(true);
+      showToast('Enviando logotipo para o Cloudinary...');
+      const imageUrl = await uploadImageToCloudinary(file);
+      updateProfile({ logoImage: imageUrl });
+      showToast('Logotipo atualizado com sucesso!');
+    } catch (err) {
+      alert('Erro ao enviar imagem: ' + (err.message || 'Erro no upload'));
+    } finally {
+      setIsUploadingLogoImage(false);
+    }
+  };
+
+  const handleGalleryFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsUploadingGalleryImage(true);
+      showToast('Enviando foto do espaço para o Cloudinary...');
+      const imageUrl = await uploadImageToCloudinary(file);
+      addGalleryImage(imageUrl);
+      showToast('Nova foto adicionada à galeria!');
+    } catch (err) {
+      alert('Erro ao enviar imagem: ' + (err.message || 'Erro no upload'));
+    } finally {
+      setIsUploadingGalleryImage(false);
+    }
+  };
+
+  const handleImportJsonFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result;
+      if (typeof content === 'string') {
+        const success = importConfiguration(content);
+        if (success) {
+          showToast('Configurações importadas com sucesso!');
+        }
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Cálculos financeiros
   const totalBilling = appointments.reduce((acc, curr) => acc + (parseFloat(curr.price) || 0), 0);
   const completedAppointments = appointments.filter(a => a.status === 'Concluído').length;
 
@@ -182,7 +258,7 @@ export default function BarberDashboard({ onBackToClientView }) {
       
       {/* Toast de Notificação */}
       {notificationMessage && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-gold-500 text-dark-950 text-xs font-black shadow-gold-glow flex items-center gap-2 animate-in slide-in-from-top-3">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl theme-gradient-accent text-dark-950 text-xs font-black theme-shadow-glow flex items-center gap-2 animate-in slide-in-from-top-3">
           <Check className="w-4 h-4 stroke-[3]" />
           <span>{notificationMessage}</span>
         </div>
@@ -192,7 +268,7 @@ export default function BarberDashboard({ onBackToClientView }) {
       <div className="p-3.5 rounded-2xl bg-card-gradient border border-dark-750 flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full p-0.5 bg-gradient-to-tr from-gold-400 to-amber-200 shadow-gold-glow-sm">
+            <div className="w-11 h-11 rounded-full p-0.5 theme-gradient-accent theme-shadow-glow-sm">
               <img
                 src={profile.image}
                 alt={profile.owner}
@@ -204,16 +280,16 @@ export default function BarberDashboard({ onBackToClientView }) {
                 <h1 className="text-sm sm:text-base font-extrabold text-white">
                   {profile.owner}
                 </h1>
-                <ShieldCheck className="w-4 h-4 text-gold-400" />
+                <ShieldCheck className="w-4 h-4 theme-text-accent" />
               </div>
-              <p className="text-[11px] text-neutral-400">{profile.name} • Tuntum - MA</p>
+              <p className="text-[11px] text-neutral-400">{profile.name} • Gestão Total</p>
             </div>
           </div>
 
           <div className="flex items-center gap-1.5">
             <button
               onClick={handleCopyClientLink}
-              className="px-2.5 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-700 text-gold-400 border border-gold-500/30 text-[11px] font-bold flex items-center gap-1 transition-all"
+              className="px-2.5 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-700 theme-text-accent border border-dark-700 text-[11px] font-bold flex items-center gap-1 transition-all"
               title="Copiar link para enviar aos clientes"
             >
               {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5" />}
@@ -238,7 +314,6 @@ export default function BarberDashboard({ onBackToClientView }) {
             </span>
           </div>
 
-          {/* Botões rápidos de status */}
           <div className="flex items-center gap-1 text-[10px]">
             {scheduleConfig.status !== 'Disponível' || scheduleConfig.vacationMode ? (
               <button
@@ -270,12 +345,12 @@ export default function BarberDashboard({ onBackToClientView }) {
         </div>
       </div>
 
-      {/* Navegação entre Abas do Painel */}
-      <div className="grid grid-cols-4 gap-1 p-1 rounded-xl bg-dark-900 border border-dark-800 text-xs font-bold">
+      {/* Navegação entre as 5 Abas do Painel */}
+      <div className="grid grid-cols-5 gap-1 p-1 rounded-xl bg-dark-900 border border-dark-800 text-[11px] font-bold">
         <button
           onClick={() => setActiveSubTab('agenda')}
-          className={`py-2 px-1 rounded-lg flex flex-col sm:flex-row items-center justify-center gap-1 transition-all ${
-            activeSubTab === 'agenda' ? 'bg-gold-500 text-dark-950 shadow-gold-glow-sm' : 'text-neutral-400 hover:text-white'
+          className={`py-2 px-0.5 rounded-lg flex flex-col items-center justify-center gap-1 transition-all ${
+            activeSubTab === 'agenda' ? 'theme-gradient-accent text-dark-950 font-black shadow-sm' : 'text-neutral-400 hover:text-white'
           }`}
         >
           <Calendar className="w-3.5 h-3.5" />
@@ -284,18 +359,28 @@ export default function BarberDashboard({ onBackToClientView }) {
 
         <button
           onClick={() => setActiveSubTab('servicos')}
-          className={`py-2 px-1 rounded-lg flex flex-col sm:flex-row items-center justify-center gap-1 transition-all ${
-            activeSubTab === 'servicos' ? 'bg-gold-500 text-dark-950 shadow-gold-glow-sm' : 'text-neutral-400 hover:text-white'
+          className={`py-2 px-0.5 rounded-lg flex flex-col items-center justify-center gap-1 transition-all ${
+            activeSubTab === 'servicos' ? 'theme-gradient-accent text-dark-950 font-black shadow-sm' : 'text-neutral-400 hover:text-white'
           }`}
         >
           <Scissors className="w-3.5 h-3.5" />
-          <span>Cortes ({services.length})</span>
+          <span>Cortes</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('temas')}
+          className={`py-2 px-0.5 rounded-lg flex flex-col items-center justify-center gap-1 transition-all ${
+            activeSubTab === 'temas' ? 'theme-gradient-accent text-dark-950 font-black shadow-sm' : 'text-neutral-400 hover:text-white'
+          }`}
+        >
+          <Palette className="w-3.5 h-3.5" />
+          <span>Cores & Fotos</span>
         </button>
 
         <button
           onClick={() => setActiveSubTab('horarios')}
-          className={`py-2 px-1 rounded-lg flex flex-col sm:flex-row items-center justify-center gap-1 transition-all ${
-            activeSubTab === 'horarios' ? 'bg-gold-500 text-dark-950 shadow-gold-glow-sm' : 'text-neutral-400 hover:text-white'
+          className={`py-2 px-0.5 rounded-lg flex flex-col items-center justify-center gap-1 transition-all ${
+            activeSubTab === 'horarios' ? 'theme-gradient-accent text-dark-950 font-black shadow-sm' : 'text-neutral-400 hover:text-white'
           }`}
         >
           <Clock className="w-3.5 h-3.5" />
@@ -304,8 +389,8 @@ export default function BarberDashboard({ onBackToClientView }) {
 
         <button
           onClick={() => setActiveSubTab('perfil')}
-          className={`py-2 px-1 rounded-lg flex flex-col sm:flex-row items-center justify-center gap-1 transition-all ${
-            activeSubTab === 'perfil' ? 'bg-gold-500 text-dark-950 shadow-gold-glow-sm' : 'text-neutral-400 hover:text-white'
+          className={`py-2 px-0.5 rounded-lg flex flex-col items-center justify-center gap-1 transition-all ${
+            activeSubTab === 'perfil' ? 'theme-gradient-accent text-dark-950 font-black shadow-sm' : 'text-neutral-400 hover:text-white'
           }`}
         >
           <Building2 className="w-3.5 h-3.5" />
@@ -334,7 +419,7 @@ export default function BarberDashboard({ onBackToClientView }) {
 
             <div className="p-3 rounded-xl bg-dark-900 border border-dark-800">
               <span className="text-[10px] text-neutral-400 uppercase font-bold block">Previsão</span>
-              <span className="text-lg font-black text-gold-400">R$ {totalBilling.toFixed(0)}</span>
+              <span className="text-lg font-black theme-text-accent">R$ {totalBilling.toFixed(0)}</span>
               <span className="text-[10px] text-neutral-500 block">faturamento</span>
             </div>
           </div>
@@ -346,7 +431,7 @@ export default function BarberDashboard({ onBackToClientView }) {
             </h3>
             <button
               onClick={() => setIsAppointmentModalOpen(true)}
-              className="px-2.5 py-1.5 rounded-lg bg-gold-500 hover:bg-gold-400 text-dark-950 font-bold text-xs flex items-center gap-1 shadow-gold-glow-sm cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg theme-gradient-accent text-dark-950 font-black text-xs flex items-center gap-1 shadow-sm cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5 stroke-[3]" />
               <span>Agendar Cliente</span>
@@ -363,11 +448,11 @@ export default function BarberDashboard({ onBackToClientView }) {
               appointments.map((apt) => (
                 <div
                   key={apt.id}
-                  className="p-3 rounded-2xl bg-card-gradient border border-dark-750 flex flex-col gap-2.5 hover:border-gold-500/40 transition-all"
+                  className="p-3 rounded-2xl bg-card-gradient border border-dark-750 flex flex-col gap-2.5 transition-all"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 rounded-xl bg-dark-800 border border-dark-700 flex flex-col items-center justify-center text-gold-400">
+                      <div className="w-10 h-10 rounded-xl bg-dark-800 border border-dark-700 flex flex-col items-center justify-center theme-text-accent">
                         <Clock className="w-3.5 h-3.5" />
                         <span className="text-xs font-black">{apt.time}</span>
                       </div>
@@ -376,7 +461,7 @@ export default function BarberDashboard({ onBackToClientView }) {
                         <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
                           <span>{apt.client}</span>
                         </h4>
-                        <p className="text-[11px] text-gold-400 font-medium">{apt.service}</p>
+                        <p className="text-[11px] theme-text-accent font-medium">{apt.service}</p>
                         <p className="text-[10px] text-neutral-400 flex items-center gap-1 mt-0.5">
                           <Phone className="w-2.5 h-2.5" /> {apt.phone} • {apt.payment}
                         </p>
@@ -402,7 +487,6 @@ export default function BarberDashboard({ onBackToClientView }) {
                     </div>
                   </div>
 
-                  {/* Status & Botões de Mudança de Estado */}
                   <div className="pt-2 border-t border-dark-800 flex items-center justify-between">
                     <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${
                       apt.status === 'Concluído'
@@ -433,7 +517,7 @@ export default function BarberDashboard({ onBackToClientView }) {
                             updateAppointmentStatus(apt.id, 'Em Atendimento');
                             showToast(`Atendimento iniciado.`);
                           }}
-                          className="px-2 py-1 rounded-lg bg-gold-500 text-dark-950 font-bold transition-all cursor-pointer"
+                          className="px-2 py-1 rounded-lg theme-gradient-accent text-dark-950 font-bold transition-all cursor-pointer"
                         >
                           Iniciar
                         </button>
@@ -457,12 +541,12 @@ export default function BarberDashboard({ onBackToClientView }) {
               <h3 className="text-xs font-black uppercase tracking-wider text-neutral-300">
                 Catálogo de Serviços ({services.length})
               </h3>
-              <p className="text-[10px] text-neutral-400">Adicione, altere preços ou exclua serviços</p>
+              <p className="text-[10px] text-neutral-400">Adicione novos cortes ou pacotes com foto</p>
             </div>
 
             <button
               onClick={handleOpenNewServiceModal}
-              className="px-3 py-1.5 rounded-lg bg-gold-500 hover:bg-gold-400 text-dark-950 font-black text-xs flex items-center gap-1.5 shadow-gold-glow-sm cursor-pointer"
+              className="px-3 py-1.5 rounded-lg theme-gradient-accent text-dark-950 font-black text-xs flex items-center gap-1.5 theme-shadow-glow-sm cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
               <span>Novo Corte</span>
@@ -473,10 +557,10 @@ export default function BarberDashboard({ onBackToClientView }) {
             {services.map((svc) => (
               <div
                 key={svc.id}
-                className="p-3 rounded-2xl bg-card-gradient border border-dark-750 hover:border-gold-500/40 transition-all flex flex-col gap-2 relative overflow-hidden"
+                className="p-3 rounded-2xl bg-card-gradient border border-dark-750 hover:border-neutral-600 transition-all flex flex-col gap-2 relative overflow-hidden"
               >
                 {svc.badge && (
-                  <span className="absolute top-0 right-0 px-2.5 py-0.5 bg-gold-gradient text-dark-950 text-[9px] font-black uppercase tracking-wider rounded-bl-lg">
+                  <span className="absolute top-0 right-0 px-2.5 py-0.5 theme-gradient-accent text-dark-950 text-[9px] font-black uppercase tracking-wider rounded-bl-lg">
                     {svc.badge}
                   </span>
                 )}
@@ -497,28 +581,27 @@ export default function BarberDashboard({ onBackToClientView }) {
                     </p>
                     <div className="flex items-center gap-2 mt-1 text-[10px] text-neutral-400">
                       <span className="flex items-center gap-0.5">
-                        <Clock className="w-3 h-3 text-gold-400" />
+                        <Clock className="w-3 h-3 theme-text-accent" />
                         {svc.duration}
                       </span>
                       <span>•</span>
-                      <span className="uppercase text-gold-300 font-semibold">{svc.category}</span>
+                      <span className="uppercase theme-text-accent font-semibold">{svc.category}</span>
                     </div>
                   </div>
 
                   <div className="text-right flex-shrink-0">
-                    <span className="text-sm font-extrabold text-gold-400 block">
+                    <span className="text-sm font-extrabold theme-text-accent block">
                       R$ {parseFloat(svc.price).toFixed(2).replace('.', ',')}
                     </span>
                   </div>
                 </div>
 
-                {/* Botões de Ação para o Corte */}
                 <div className="pt-2 border-t border-dark-800 flex items-center justify-end gap-2">
                   <button
                     onClick={() => handleOpenEditServiceModal(svc)}
-                    className="px-2.5 py-1 rounded-lg bg-dark-800 hover:bg-dark-700 text-neutral-200 text-xs font-semibold flex items-center gap-1 border border-dark-700 transition-colors"
+                    className="px-2.5 py-1 rounded-lg bg-dark-800 hover:bg-dark-700 text-neutral-200 text-xs font-semibold flex items-center gap-1 border border-dark-700 transition-colors cursor-pointer"
                   >
-                    <Edit2 className="w-3 h-3 text-gold-400" />
+                    <Edit2 className="w-3 h-3 theme-text-accent" />
                     <span>Editar</span>
                   </button>
 
@@ -529,7 +612,7 @@ export default function BarberDashboard({ onBackToClientView }) {
                         showToast(`Serviço "${svc.name}" excluído.`);
                       }
                     }}
-                    className="px-2 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-semibold flex items-center gap-1 transition-colors"
+                    className="px-2 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-3 h-3" />
                     <span>Excluir</span>
@@ -542,11 +625,227 @@ export default function BarberDashboard({ onBackToClientView }) {
       )}
 
       {/* =========================================================================
-          ABA 3: GESTÃO DE HORÁRIOS, INTERVALOS E FÉRIAS
+          ABA 3: APARÊNCIA, CORES & FOTOS (NOVO: WHITELABEL COMPLETO)
+      ========================================================================= */}
+      {activeSubTab === 'temas' && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          
+          {/* Seletor de Paleta de Cores */}
+          <div className="p-4 rounded-2xl bg-dark-900 border border-dark-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-1.5">
+                <Palette className="w-4 h-4 theme-text-accent" />
+                <span>Paleta de Cores do Aplicativo</span>
+              </h4>
+              <span className="text-[10px] text-neutral-400">Muda todo o design</span>
+            </div>
+
+            <p className="text-[11px] text-neutral-400">
+              Escolha a identidade da barbearia. Botões, destaques e textos mudarão imediatamente.
+            </p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {Object.entries(THEME_PRESETS).map(([key, p]) => (
+                <button
+                  key={key}
+                  onClick={() => {
+                    selectThemePreset(key);
+                    showToast(`Tema alterado para ${p.name}!`);
+                  }}
+                  className={`p-2.5 rounded-xl border flex items-center gap-2.5 transition-all text-left cursor-pointer ${
+                    theme.preset === key
+                      ? 'border-white bg-dark-800 shadow-md ring-1 ring-white'
+                      : 'border-dark-750 bg-dark-850 hover:border-neutral-600'
+                  }`}
+                >
+                  <span
+                    className="w-5 h-5 rounded-full shadow-sm flex-shrink-0 border border-white/20"
+                    style={{ backgroundColor: p.primary }}
+                  />
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-white block truncate">{p.name}</span>
+                    <span className="text-[9px] text-neutral-400 block">{p.primary}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Cor Personalizada (Color Picker) */}
+            <div className="pt-2 border-t border-dark-800 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={customColorInput}
+                  onChange={(e) => setCustomColorInput(e.target.value)}
+                  className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0 p-0"
+                />
+                <div>
+                  <span className="text-xs font-bold text-white block">Cor Sob Medida</span>
+                  <span className="text-[10px] text-neutral-400">{customColorInput}</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  setCustomColor(customColorInput);
+                  showToast('Cor personalizada aplicada!');
+                }}
+                className="px-3 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-750 text-white text-xs font-bold border border-dark-700 cursor-pointer"
+              >
+                Aplicar Cor
+              </button>
+            </div>
+          </div>
+
+          {/* Foto de Capa (Hero Banner) */}
+          <div className="p-4 rounded-2xl bg-dark-900 border border-dark-800 space-y-3">
+            <h4 className="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-1.5">
+              <ImageIcon className="w-4 h-4 theme-text-accent" />
+              <span>Foto de Capa do Aplicativo (Banner)</span>
+            </h4>
+            <p className="text-[10px] text-neutral-400">
+              Esta é a foto principal exibida no topo do app do cliente.
+            </p>
+
+            <div className="relative h-32 rounded-xl overflow-hidden border border-dark-700">
+              <img
+                src={profile.coverImage || "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=1200&q=80"}
+                alt="Capa"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                <input
+                  ref={coverFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleCoverFileUpload}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  disabled={isUploadingCoverImage}
+                  onClick={() => coverFileInputRef.current?.click()}
+                  className="px-3 py-2 rounded-xl theme-gradient-accent text-dark-950 font-black text-xs flex items-center gap-1.5 shadow-lg cursor-pointer"
+                >
+                  {isUploadingCoverImage ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Enviando foto...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>Trocar Foto de Capa (Cloudinary)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Logotipo da Barbearia */}
+          <div className="p-4 rounded-2xl bg-dark-900 border border-dark-800 space-y-3">
+            <h4 className="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-1.5">
+              <Scissors className="w-4 h-4 theme-text-accent" />
+              <span>Logotipo da Barbearia</span>
+            </h4>
+
+            <div className="flex items-center gap-3">
+              <div className="w-14 h-14 rounded-xl bg-dark-850 border border-dark-700 flex items-center justify-center overflow-hidden p-1">
+                {profile.logoImage ? (
+                  <img src={profile.logoImage} alt="Logo" className="w-full h-full object-contain" />
+                ) : (
+                  <Scissors className="w-6 h-6 theme-text-accent" />
+                )}
+              </div>
+
+              <div className="flex-1">
+                <input
+                  ref={logoFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoFileUpload}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  disabled={isUploadingLogoImage}
+                  onClick={() => logoFileInputRef.current?.click()}
+                  className="px-3 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-750 text-white text-xs font-bold border border-dark-700 flex items-center gap-1.5 cursor-pointer"
+                >
+                  {isUploadingLogoImage ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                  <span>{profile.logoImage ? 'Trocar Logotipo' : 'Enviar Logo (PNG)'}</span>
+                </button>
+                {profile.logoImage && (
+                  <button
+                    onClick={() => { updateProfile({ logoImage: '' }); showToast('Logo removido'); }}
+                    className="text-[10px] text-rose-400 hover:underline block mt-1"
+                  >
+                    Remover logo e usar ícone padrão
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Galeria de Fotos do Espaço (Salão / Fachada) */}
+          <div className="p-4 rounded-2xl bg-dark-900 border border-dark-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-1.5">
+                <Camera className="w-4 h-4 theme-text-accent" />
+                <span>Fotos do Espaço & Fachada ({galleryImages.length})</span>
+              </h4>
+              
+              <input
+                ref={galleryFileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleGalleryFileUpload}
+                className="hidden"
+              />
+              <button
+                type="button"
+                disabled={isUploadingGalleryImage}
+                onClick={() => galleryFileInputRef.current?.click()}
+                className="px-2.5 py-1 rounded-lg theme-gradient-accent text-dark-950 font-black text-xs flex items-center gap-1 shadow-sm cursor-pointer"
+              >
+                {isUploadingGalleryImage ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3 stroke-[3]" />}
+                <span>+ Adicionar Foto</span>
+              </button>
+            </div>
+
+            <p className="text-[10px] text-neutral-400">
+              Essas fotos aparecem para o cliente na seção "Conheça Nosso Espaço".
+            </p>
+
+            <div className="grid grid-cols-3 gap-2">
+              {galleryImages.map((img, idx) => (
+                <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-dark-750 group">
+                  <img src={img} alt={`Espaço ${idx}`} className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => {
+                      removeGalleryImage(idx);
+                      showToast('Foto removida da galeria.');
+                    }}
+                    className="absolute top-1 right-1 p-1 rounded-md bg-black/80 text-rose-400 hover:text-rose-300 hover:bg-black transition-colors"
+                    title="Excluir foto"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* =========================================================================
+          ABA 4: GESTÃO DE HORÁRIOS, INTERVALOS E FÉRIAS
       ========================================================================= */}
       {activeSubTab === 'horarios' && (
         <div className="space-y-4 animate-in fade-in duration-200">
-          {/* Card de Férias / Indisponibilidade */}
+          {/* Card de Férias */}
           <div className="p-4 rounded-2xl bg-dark-900 border border-dark-800 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -561,7 +860,6 @@ export default function BarberDashboard({ onBackToClientView }) {
                 </div>
               </div>
 
-              {/* Toggle Switch */}
               <button
                 type="button"
                 onClick={() => {
@@ -646,7 +944,6 @@ export default function BarberDashboard({ onBackToClientView }) {
               </div>
             </div>
 
-            {/* Ação de Pausa em 1 Clique */}
             <div className="pt-2 border-t border-dark-800 flex items-center justify-between">
               <span className="text-xs text-neutral-300">
                 Precisa sair para um café ou imprevisto agora?
@@ -666,12 +963,11 @@ export default function BarberDashboard({ onBackToClientView }) {
           {/* Horários Gerais de Atendimento */}
           <div className="p-4 rounded-2xl bg-dark-900 border border-dark-800 space-y-3">
             <h4 className="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-1.5">
-              <Calendar className="w-4 h-4 text-gold-400" />
+              <Calendar className="w-4 h-4 theme-text-accent" />
               <span>Horários de Funcionamento</span>
             </h4>
 
             <div className="space-y-3 text-xs">
-              {/* Segunda a Sexta */}
               <div className="p-3 rounded-xl bg-dark-850 border border-dark-750 space-y-2">
                 <span className="font-bold text-white block">Segunda a Sexta-feira</span>
                 <div className="grid grid-cols-2 gap-2">
@@ -696,7 +992,6 @@ export default function BarberDashboard({ onBackToClientView }) {
                 </div>
               </div>
 
-              {/* Sábado */}
               <div className="p-3 rounded-xl bg-dark-850 border border-dark-750 space-y-2">
                 <span className="font-bold text-white block">Sábado</span>
                 <div className="grid grid-cols-2 gap-2">
@@ -721,7 +1016,6 @@ export default function BarberDashboard({ onBackToClientView }) {
                 </div>
               </div>
 
-              {/* Domingo */}
               <div className="p-3 rounded-xl bg-dark-850 border border-dark-750 flex items-center justify-between">
                 <div>
                   <span className="font-bold text-white block">Domingo</span>
@@ -737,31 +1031,67 @@ export default function BarberDashboard({ onBackToClientView }) {
       )}
 
       {/* =========================================================================
-          ABA 4: BARBEARIA, COMODIDADES E ESPECIALIDADES
+          ABA 5: BARBEARIA, ESPECIALIDADES, COMODIDADES & WHITELABEL
       ========================================================================= */}
       {activeSubTab === 'perfil' && (
         <div className="space-y-4 animate-in fade-in duration-200">
           
-          {/* Dados do Barbeiro */}
+          {/* Dados Gerais da Barbearia (Whitelabel) */}
           <div className="p-4 rounded-2xl bg-dark-900 border border-dark-800 space-y-3">
             <h4 className="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-1.5">
-              <User className="w-4 h-4 text-gold-400" />
-              <span>Dados do Barbeiro</span>
+              <Building2 className="w-4 h-4 theme-text-accent" />
+              <span>Identidade da Barbearia</span>
             </h4>
 
-            {/* Upload da Foto de Perfil via Cloudinary */}
+            <div className="space-y-2.5 text-xs">
+              <div>
+                <label className="text-[10px] uppercase font-bold text-neutral-400 block mb-1">
+                  Nome do Estabelecimento:
+                </label>
+                <input
+                  type="text"
+                  value={profile.name}
+                  onChange={(e) => updateProfile({ name: e.target.value })}
+                  placeholder="Ex: Barbearia Andrade"
+                  className="w-full p-2.5 rounded-xl bg-dark-850 border border-dark-700 text-white font-extrabold text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase font-bold text-neutral-400 block mb-1">
+                  Slogan / Frase de Efeito:
+                </label>
+                <input
+                  type="text"
+                  value={profile.tagline}
+                  onChange={(e) => updateProfile({ tagline: e.target.value })}
+                  placeholder="Ex: Estilo, tradição e precisão"
+                  className="w-full p-2 rounded-xl bg-dark-850 border border-dark-700 text-white text-xs"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Dados do Barbeiro com Upload Cloudinary */}
+          <div className="p-4 rounded-2xl bg-dark-900 border border-dark-800 space-y-3">
+            <h4 className="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-1.5">
+              <User className="w-4 h-4 theme-text-accent" />
+              <span>Dados do Barbeiro Responsável</span>
+            </h4>
+
+            {/* Foto de Perfil com Botão de Câmera */}
             <div className="flex items-center gap-3.5 p-3 rounded-xl bg-dark-850 border border-dark-750">
               <div className="relative">
                 <img
                   src={profile.image}
                   alt={profile.owner}
-                  className="w-16 h-16 rounded-full object-cover border-2 border-gold-500 shadow-gold-glow-sm"
+                  className="w-16 h-16 rounded-full object-cover border-2 border-gold-500 shadow-md"
                 />
                 <button
                   type="button"
                   disabled={isUploadingProfileImage}
                   onClick={() => profileFileInputRef.current?.click()}
-                  className="absolute bottom-0 right-0 p-1.5 rounded-full bg-gold-500 text-dark-950 hover:bg-gold-400 transition-all shadow-md cursor-pointer"
+                  className="absolute bottom-0 right-0 p-1.5 rounded-full theme-gradient-accent text-dark-950 shadow-md cursor-pointer"
                   title="Trocar foto pelo Cloudinary"
                 >
                   {isUploadingProfileImage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5 stroke-[2.5]" />}
@@ -769,9 +1099,9 @@ export default function BarberDashboard({ onBackToClientView }) {
               </div>
 
               <div className="flex-1">
-                <p className="text-xs font-bold text-white">Sua Foto de Perfil</p>
+                <p className="text-xs font-bold text-white">Foto do Barbeiro</p>
                 <p className="text-[10px] text-neutral-400 mt-0.5">
-                  Foto exibida nos cards para os clientes.
+                  Foto exibida nos cartões e agendamentos.
                 </p>
                 <input
                   ref={profileFileInputRef}
@@ -784,7 +1114,7 @@ export default function BarberDashboard({ onBackToClientView }) {
                   type="button"
                   disabled={isUploadingProfileImage}
                   onClick={() => profileFileInputRef.current?.click()}
-                  className="mt-2 px-3 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-750 text-gold-400 border border-gold-500/30 text-[11px] font-bold flex items-center gap-1.5 cursor-pointer"
+                  className="mt-2 px-3 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-750 text-white border border-dark-700 text-[11px] font-bold flex items-center gap-1.5 cursor-pointer"
                 >
                   {isUploadingProfileImage ? (
                     <>
@@ -817,12 +1147,15 @@ export default function BarberDashboard({ onBackToClientView }) {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-[10px] uppercase font-bold text-neutral-400 block mb-1">
-                    WhatsApp:
+                    WhatsApp (Recebe os agendamentos):
                   </label>
                   <input
                     type="text"
                     value={profile.phone}
-                    onChange={(e) => updateProfile({ phone: e.target.value })}
+                    onChange={(e) => updateProfile({ 
+                      phone: e.target.value,
+                      whatsappNumber: e.target.value.replace(/\D/g, '')
+                    })}
                     className="w-full p-2 rounded-xl bg-dark-850 border border-dark-700 text-white text-xs"
                   />
                 </div>
@@ -869,14 +1202,10 @@ export default function BarberDashboard({ onBackToClientView }) {
           {/* Especialidades do Barbeiro */}
           <div className="p-4 rounded-2xl bg-dark-900 border border-dark-800 space-y-3">
             <h4 className="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-gold-400" />
-              <span>Minhas Especialidades ({profile.specialties.length})</span>
+              <Sparkles className="w-4 h-4 theme-text-accent" />
+              <span>Especialidades ({profile.specialties.length})</span>
             </h4>
-            <p className="text-[10px] text-neutral-400">
-              Essas tags aparecem destacadas no seu card para os clientes.
-            </p>
 
-            {/* Tags Atuais */}
             <div className="flex flex-wrap gap-1.5">
               {profile.specialties.map((esp, idx) => (
                 <span
@@ -897,7 +1226,6 @@ export default function BarberDashboard({ onBackToClientView }) {
               ))}
             </div>
 
-            {/* Adicionar Nova Especialidade */}
             <div className="flex gap-2 pt-2 border-t border-dark-800">
               <input
                 type="text"
@@ -924,26 +1252,22 @@ export default function BarberDashboard({ onBackToClientView }) {
                     showToast('Especialidade adicionada!');
                   }
                 }}
-                className="px-3 py-2 rounded-xl bg-gold-500 text-dark-950 font-bold text-xs cursor-pointer"
+                className="px-3 py-2 rounded-xl theme-gradient-accent text-dark-950 font-bold text-xs cursor-pointer"
               >
                 Adicionar
               </button>
             </div>
           </div>
 
-          {/* Comodidades da Barbearia (Ativar / Desativar) */}
+          {/* Comodidades com Switches */}
           <div className="p-4 rounded-2xl bg-dark-900 border border-dark-800 space-y-3">
             <div className="flex items-center justify-between">
               <h4 className="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-1.5">
-                <Building2 className="w-4 h-4 text-gold-400" />
+                <Building2 className="w-4 h-4 theme-text-accent" />
                 <span>Comodidades da Barbearia</span>
               </h4>
-              <span className="text-[10px] text-neutral-400">Ative ou desative na hora</span>
+              <span className="text-[10px] text-neutral-400">Ligue ou desligue</span>
             </div>
-
-            <p className="text-[10px] text-neutral-400">
-              O que estiver marcado aqui aparecerá imediatamente para os clientes no aplicativo.
-            </p>
 
             <div className="space-y-2">
               {amenities.map((am) => (
@@ -951,7 +1275,7 @@ export default function BarberDashboard({ onBackToClientView }) {
                   key={am.id}
                   className={`p-2.5 rounded-xl border flex items-center justify-between transition-all ${
                     am.enabled
-                      ? 'bg-dark-850 border-gold-500/40 text-white'
+                      ? 'bg-dark-850 border-neutral-700 text-white'
                       : 'bg-dark-950 border-dark-800 text-neutral-500 opacity-60'
                   }`}
                 >
@@ -990,7 +1314,6 @@ export default function BarberDashboard({ onBackToClientView }) {
               ))}
             </div>
 
-            {/* Adicionar Nova Comodidade */}
             <div className="flex gap-2 pt-2 border-t border-dark-800">
               <input
                 type="text"
@@ -1007,32 +1330,65 @@ export default function BarberDashboard({ onBackToClientView }) {
                     showToast('Nova comodidade criada!');
                   }
                 }}
-                className="px-3 py-2 rounded-xl bg-gold-500 text-dark-950 font-bold text-xs cursor-pointer"
+                className="px-3 py-2 rounded-xl theme-gradient-accent text-dark-950 font-bold text-xs cursor-pointer"
               >
                 Cadastrar
               </button>
             </div>
           </div>
 
-          {/* Resetar Configurações */}
-          <div className="p-3.5 rounded-xl bg-dark-900 border border-dark-800 flex items-center justify-between text-xs">
-            <div>
-              <p className="font-bold text-neutral-300">Restaurar Dados Iniciais</p>
-              <span className="text-[10px] text-neutral-500">Recarrega o questionário original</span>
+          {/* Backup, Whitelabel & Reset */}
+          <div className="p-4 rounded-2xl bg-dark-900 border border-dark-800 space-y-3">
+            <h4 className="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-1.5">
+              <Settings className="w-4 h-4 theme-text-accent" />
+              <span>Exportar / Importar Barbearia (Backup)</span>
+            </h4>
+            <p className="text-[10px] text-neutral-400">
+              Você pode exportar esta barbearia como arquivo e importar para trocar de cliente em 1 segundo!
+            </p>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                onClick={exportConfiguration}
+                className="p-2.5 rounded-xl bg-dark-850 hover:bg-dark-800 border border-dark-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5 theme-text-accent" />
+                <span>Exportar (.JSON)</span>
+              </button>
+
+              <input
+                ref={jsonFileInputRef}
+                type="file"
+                accept=".json"
+                onChange={handleImportJsonFile}
+                className="hidden"
+              />
+              <button
+                onClick={() => jsonFileInputRef.current?.click()}
+                className="p-2.5 rounded-xl bg-dark-850 hover:bg-dark-800 border border-dark-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              >
+                <Upload className="w-3.5 h-3.5 theme-text-accent" />
+                <span>Importar (.JSON)</span>
+              </button>
             </div>
-            <button
-              onClick={() => {
-                if (confirm('Deseja restaurar todos os serviços e dados para o padrão original?')) {
-                  resetToFactoryDefaults();
-                  showToast('Dados restaurados!');
-                }
-              }}
-              className="px-2.5 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-750 text-neutral-400 hover:text-white border border-dark-700 flex items-center gap-1"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Resetar</span>
-            </button>
+
+            <div className="pt-2 border-t border-dark-800 flex items-center justify-between text-xs">
+              <span className="text-[11px] text-neutral-400">Restaurar Barbearia Andrade original:</span>
+              <button
+                onClick={() => {
+                  if (confirm('Deseja restaurar todos os serviços, cores e dados originais?')) {
+                    resetToFactoryDefaults();
+                    showToast('Dados originais restaurados!');
+                  }
+                }}
+                className="px-2.5 py-1 rounded-lg bg-dark-800 hover:bg-dark-750 text-neutral-400 hover:text-white border border-dark-700 flex items-center gap-1 text-[11px]"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Resetar</span>
+              </button>
+            </div>
           </div>
+
         </div>
       )}
 
@@ -1041,28 +1397,28 @@ export default function BarberDashboard({ onBackToClientView }) {
         <div className="pt-2 pb-6 text-center">
           <button
             onClick={onBackToClientView}
-            className="text-xs text-neutral-400 hover:text-gold-400 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="text-xs text-neutral-400 hover:text-white inline-flex items-center gap-1.5 transition-colors cursor-pointer"
           >
-            <Eye className="w-3.5 h-3.5 text-gold-400" />
+            <Eye className="w-3.5 h-3.5 theme-text-accent" />
             <span>Abrir e testar o aplicativo como cliente</span>
           </button>
         </div>
       )}
 
       {/* =========================================================================
-          MODAL: ADICIONAR / EDITAR SERVIÇO
+          MODAL: ADICIONAR / EDITAR SERVIÇO COM CLOUDINARY
       ========================================================================= */}
       {isServiceModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-md bg-dark-900 border border-dark-700 rounded-3xl p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-dark-800">
               <h3 className="text-sm font-extrabold text-white flex items-center gap-1.5">
-                <Scissors className="w-4 h-4 text-gold-400" />
+                <Scissors className="w-4 h-4 theme-text-accent" />
                 <span>{editingService ? 'Editar Serviço' : 'Novo Corte ou Pacote'}</span>
               </h3>
               <button
                 onClick={() => setIsServiceModalOpen(false)}
-                className="p-1.5 rounded-full bg-dark-800 text-neutral-400 hover:text-white"
+                className="p-1.5 rounded-full bg-dark-800 text-neutral-400 hover:text-white cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1095,7 +1451,7 @@ export default function BarberDashboard({ onBackToClientView }) {
                     placeholder="Ex: 35.00"
                     value={serviceForm.price}
                     onChange={(e) => setServiceForm({ ...serviceForm, price: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-dark-850 border border-dark-700 text-gold-400 font-extrabold"
+                    className="w-full p-2.5 rounded-xl bg-dark-850 border border-dark-700 theme-text-accent font-extrabold"
                   />
                 </div>
 
@@ -1165,6 +1521,7 @@ export default function BarberDashboard({ onBackToClientView }) {
                 />
               </div>
 
+              {/* Upload de Foto via Cloudinary com Câmera */}
               <div>
                 <label className="block text-[10px] uppercase font-bold text-neutral-300 mb-1.5">
                   Foto do Corte / Pacote:
@@ -1176,7 +1533,7 @@ export default function BarberDashboard({ onBackToClientView }) {
                       <img
                         src={serviceForm.image}
                         alt="Preview"
-                        className="w-16 h-16 rounded-xl object-cover border border-gold-500/50 shadow-md"
+                        className="w-16 h-16 rounded-xl object-cover border border-neutral-600 shadow-md"
                       />
                     ) : (
                       <div className="w-16 h-16 rounded-xl bg-dark-900 border border-dark-700 flex items-center justify-center text-neutral-500">
@@ -1196,7 +1553,7 @@ export default function BarberDashboard({ onBackToClientView }) {
                         type="button"
                         disabled={isUploadingServiceImage}
                         onClick={() => serviceFileInputRef.current?.click()}
-                        className="w-full py-2 px-3 rounded-xl bg-gold-500 hover:bg-gold-400 text-dark-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-gold-glow-sm cursor-pointer"
+                        className="w-full py-2 px-3 rounded-xl theme-gradient-accent text-dark-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
                       >
                         {isUploadingServiceImage ? (
                           <>
@@ -1241,7 +1598,7 @@ export default function BarberDashboard({ onBackToClientView }) {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-gold-500 hover:bg-gold-400 text-dark-950 font-black shadow-gold-glow-sm"
+                  className="flex-1 py-2.5 rounded-xl theme-gradient-accent text-dark-950 font-black shadow-sm"
                 >
                   {editingService ? 'Salvar Alterações' : 'Cadastrar Serviço'}
                 </button>
@@ -1259,7 +1616,7 @@ export default function BarberDashboard({ onBackToClientView }) {
           <div className="w-full max-w-md bg-dark-900 border border-dark-700 rounded-3xl p-5 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-dark-800">
               <h3 className="text-sm font-extrabold text-white flex items-center gap-1.5">
-                <Calendar className="w-4 h-4 text-gold-400" />
+                <Calendar className="w-4 h-4 theme-text-accent" />
                 <span>Agendar Cliente no Balcão</span>
               </h3>
               <button
@@ -1308,7 +1665,7 @@ export default function BarberDashboard({ onBackToClientView }) {
                     required
                     value={appointmentForm.time}
                     onChange={(e) => setAppointmentForm({ ...appointmentForm, time: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-dark-850 border border-dark-700 text-gold-400 font-extrabold"
+                    className="w-full p-2.5 rounded-xl bg-dark-850 border border-dark-700 theme-text-accent font-extrabold"
                   />
                 </div>
               </div>
@@ -1348,7 +1705,7 @@ export default function BarberDashboard({ onBackToClientView }) {
                     type="number"
                     value={appointmentForm.price}
                     onChange={(e) => setAppointmentForm({ ...appointmentForm, price: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-dark-850 border border-dark-700 text-gold-400 font-extrabold"
+                    className="w-full p-2.5 rounded-xl bg-dark-850 border border-dark-700 theme-text-accent font-extrabold"
                   />
                 </div>
 
@@ -1378,7 +1735,7 @@ export default function BarberDashboard({ onBackToClientView }) {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-gold-500 hover:bg-gold-400 text-dark-950 font-black shadow-gold-glow-sm"
+                  className="flex-1 py-2.5 rounded-xl theme-gradient-accent text-dark-950 font-black shadow-sm"
                 >
                   Salvar Horário
                 </button>

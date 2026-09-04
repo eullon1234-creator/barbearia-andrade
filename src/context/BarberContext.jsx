@@ -4,15 +4,134 @@ import { BARBERSHOP_DATA } from '../data/barberData';
 const BarberContext = createContext(null);
 
 const STORAGE_KEYS = {
-  SERVICES: 'andrade_services_v1',
-  AMENITIES: 'andrade_amenities_v1',
-  PROFILE: 'andrade_profile_v1',
-  SCHEDULE: 'andrade_schedule_v1',
-  APPOINTMENTS: 'andrade_appointments_v1',
+  SERVICES: 'andrade_services_v2',
+  AMENITIES: 'andrade_amenities_v2',
+  PROFILE: 'andrade_profile_v2',
+  SCHEDULE: 'andrade_schedule_v2',
+  APPOINTMENTS: 'andrade_appointments_v2',
+  THEME: 'andrade_theme_v2',
+  GALLERY: 'andrade_gallery_v2',
+};
+
+// Paletas de cores pré-configuradas para qualquer estilo de barbearia
+export const THEME_PRESETS = {
+  gold: {
+    id: 'gold',
+    name: 'Dourado Real',
+    primary: '#D4AF37',
+    light: '#F9E79F',
+    dark: '#997514',
+    glow: 'rgba(212, 175, 55, 0.4)',
+    badgeBg: 'bg-amber-400',
+  },
+  silver: {
+    id: 'silver',
+    name: 'Prata & Titânio',
+    primary: '#CBD5E1',
+    light: '#F8FAFC',
+    dark: '#64748B',
+    glow: 'rgba(203, 213, 225, 0.4)',
+    badgeBg: 'bg-slate-300',
+  },
+  emerald: {
+    id: 'emerald',
+    name: 'Verde Esmeralda',
+    primary: '#10B981',
+    light: '#A7F3D0',
+    dark: '#047857',
+    glow: 'rgba(16, 185, 129, 0.4)',
+    badgeBg: 'bg-emerald-500',
+  },
+  amber: {
+    id: 'amber',
+    name: 'Âmbar Whisky',
+    primary: '#F59E0B',
+    light: '#FDE68A',
+    dark: '#B45309',
+    glow: 'rgba(245, 158, 11, 0.4)',
+    badgeBg: 'bg-amber-500',
+  },
+  crimson: {
+    id: 'crimson',
+    name: 'Rubi Nobre',
+    primary: '#EF4444',
+    light: '#FECACA',
+    dark: '#991B1B',
+    glow: 'rgba(239, 68, 68, 0.4)',
+    badgeBg: 'bg-rose-500',
+  },
+  sapphire: {
+    id: 'sapphire',
+    name: 'Azul Safira',
+    primary: '#3B82F6',
+    light: '#BFDBFE',
+    dark: '#1D4ED8',
+    glow: 'rgba(59, 130, 246, 0.4)',
+    badgeBg: 'bg-blue-500',
+  },
+  purple: {
+    id: 'purple',
+    name: 'Roxo Royal',
+    primary: '#A855F7',
+    light: '#E9D5FF',
+    dark: '#6B21A8',
+    glow: 'rgba(168, 85, 247, 0.4)',
+    badgeBg: 'bg-purple-500',
+  }
 };
 
 export function BarberProvider({ children }) {
-  // 1. Serviços & Cortes
+  // 1. Tema & Paleta de Cores
+  const defaultTheme = {
+    preset: 'gold',
+    primary: '#D4AF37',
+    light: '#F9E79F',
+    dark: '#997514',
+    glow: 'rgba(212, 175, 55, 0.4)',
+  };
+
+  const [theme, setTheme] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.THEME);
+      return saved ? JSON.parse(saved) : defaultTheme;
+    } catch (e) {
+      return defaultTheme;
+    }
+  });
+
+  // Atualiza as variáveis CSS globais no HTML sempre que o tema mudar
+  useEffect(() => {
+    document.documentElement.style.setProperty('--primary-accent', theme.primary);
+    document.documentElement.style.setProperty('--primary-accent-light', theme.light);
+    document.documentElement.style.setProperty('--primary-accent-dark', theme.dark);
+    document.documentElement.style.setProperty('--primary-accent-glow', theme.glow);
+    localStorage.setItem(STORAGE_KEYS.THEME, JSON.stringify(theme));
+  }, [theme]);
+
+  const selectThemePreset = (presetKey) => {
+    const p = THEME_PRESETS[presetKey];
+    if (p) {
+      setTheme({
+        preset: presetKey,
+        primary: p.primary,
+        light: p.light,
+        dark: p.dark,
+        glow: p.glow,
+      });
+    }
+  };
+
+  const setCustomColor = (hex) => {
+    setTheme({
+      preset: 'custom',
+      primary: hex,
+      light: hex,
+      dark: hex,
+      glow: `${hex}66`,
+    });
+  };
+
+  // 2. Serviços & Cortes
   const [services, setServices] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.SERVICES);
@@ -22,7 +141,7 @@ export function BarberProvider({ children }) {
     }
   });
 
-  // 2. Comodidades
+  // 3. Comodidades
   const defaultAmenities = [
     { id: 'ac', label: 'Ambiente Climatizado', icon: 'Snowflake', enabled: true },
     { id: 'wifi', label: 'Wi-Fi Liberado', icon: 'Wifi', enabled: true },
@@ -41,11 +160,14 @@ export function BarberProvider({ children }) {
     }
   });
 
-  // 3. Perfil do Barbeiro e Barbearia
+  // 4. Perfil & Identidade da Barbearia (Totalmente customizável para qualquer barbearia)
   const defaultProfile = {
     name: BARBERSHOP_DATA.name,
+    tagline: BARBERSHOP_DATA.tagline,
     owner: BARBERSHOP_DATA.owner,
     role: "Barbeiro Especialista & Visagista",
+    experienceYears: "5+ anos",
+    reviewsCount: "140+",
     phone: BARBERSHOP_DATA.phone,
     whatsappNumber: BARBERSHOP_DATA.whatsappNumber,
     instagram: BARBERSHOP_DATA.instagram,
@@ -53,6 +175,8 @@ export function BarberProvider({ children }) {
     mapsUrl: BARBERSHOP_DATA.mapsUrl,
     bio: "Atendimento exclusivo com Saymon Andrade. O melhor degradê e terapia de barba da região.",
     image: BARBERSHOP_DATA.images.barber,
+    coverImage: BARBERSHOP_DATA.images.hero,
+    logoImage: '',
     specialties: [
       'Degradê / Fade Navalhado',
       'Barba na Toalha Quente',
@@ -71,16 +195,32 @@ export function BarberProvider({ children }) {
     }
   });
 
-  // 4. Configuração de Horários, Intervalos e Férias
+  // 5. Galeria de Fotos do Espaço / Fachada
+  const defaultGallery = [
+    'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=800&q=80',
+  ];
+
+  const [galleryImages, setGalleryImages] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.GALLERY);
+      return saved ? JSON.parse(saved) : defaultGallery;
+    } catch (e) {
+      return defaultGallery;
+    }
+  });
+
+  // 6. Horários, Intervalos e Férias
   const defaultSchedule = {
     weekdaysStart: '13:00',
     weekdaysEnd: '18:00',
     saturdayStart: '08:00',
     saturdayEnd: '13:00',
     sundayClosed: true,
-    slotInterval: 30, // minutos por atendimento padrão
-    breakDuration: 30, // minutos da pausa rápida
-    status: 'Disponível', // 'Disponível' | 'Em Pausa' | 'Férias'
+    slotInterval: 30,
+    breakDuration: 30,
+    status: 'Disponível',
     vacationMode: false,
     vacationMessage: 'Saymon Andrade está em período de recesso/férias. Em breve novos horários disponíveis!',
     currentPauseEndTime: null,
@@ -95,7 +235,7 @@ export function BarberProvider({ children }) {
     }
   });
 
-  // 5. Agendamentos
+  // 7. Agendamentos
   const [appointments, setAppointments] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.APPOINTMENTS);
@@ -105,7 +245,7 @@ export function BarberProvider({ children }) {
     }
   });
 
-  // Persistência automática em localStorage
+  // Persistência
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.SERVICES, JSON.stringify(services));
   }, [services]);
@@ -119,6 +259,10 @@ export function BarberProvider({ children }) {
   }, [profile]);
 
   useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.GALLERY, JSON.stringify(galleryImages));
+  }, [galleryImages]);
+
+  useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.SCHEDULE, JSON.stringify(scheduleConfig));
   }, [scheduleConfig]);
 
@@ -126,7 +270,7 @@ export function BarberProvider({ children }) {
     localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(appointments));
   }, [appointments]);
 
-  // ====== Ações de Serviços ======
+  // Ações de Serviços
   const addService = (newService) => {
     const created = {
       id: 'svc-' + Date.now(),
@@ -150,7 +294,7 @@ export function BarberProvider({ children }) {
     setServices(prev => prev.filter(s => s.id !== id));
   };
 
-  // ====== Ações de Comodidades ======
+  // Ações de Comodidades
   const toggleAmenity = (id) => {
     setAmenities(prev => prev.map(a => a.id === id ? { ...a, enabled: !a.enabled } : a));
   };
@@ -169,7 +313,17 @@ export function BarberProvider({ children }) {
     setAmenities(prev => prev.filter(a => a.id !== id));
   };
 
-  // ====== Ações de Perfil & Especialidades ======
+  // Ações de Galeria
+  const addGalleryImage = (url) => {
+    if (!url) return;
+    setGalleryImages(prev => [...prev, url]);
+  };
+
+  const removeGalleryImage = (indexToRemove) => {
+    setGalleryImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  // Ações de Perfil & Especialidades
   const updateProfile = (fields) => {
     setProfile(prev => ({ ...prev, ...fields }));
   };
@@ -189,7 +343,7 @@ export function BarberProvider({ children }) {
     }));
   };
 
-  // ====== Ações de Horários & Intervalos ======
+  // Ações de Horários & Intervalos
   const updateSchedule = (fields) => {
     setScheduleConfig(prev => ({ ...prev, ...fields }));
   };
@@ -226,7 +380,7 @@ export function BarberProvider({ children }) {
     });
   };
 
-  // ====== Ações de Agendamentos ======
+  // Ações de Agendamentos
   const updateAppointmentStatus = (id, newStatus) => {
     setAppointments(prev => prev.map(a => a.id === id ? { ...a, status: newStatus } : a));
   };
@@ -244,17 +398,57 @@ export function BarberProvider({ children }) {
     setAppointments(prev => prev.filter(a => a.id !== id));
   };
 
-  // ====== Reset Total para Dados Iniciais ======
+  // Exportar / Importar Configuração Completa (Backup / Whitelabel)
+  const exportConfiguration = () => {
+    const config = {
+      theme,
+      profile,
+      services,
+      amenities,
+      galleryImages,
+      scheduleConfig,
+    };
+    const jsonStr = JSON.stringify(config, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `config_${profile.name.toLowerCase().replace(/\s+/g, '_')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importConfiguration = (jsonString) => {
+    try {
+      const data = JSON.parse(jsonString);
+      if (data.theme) setTheme(data.theme);
+      if (data.profile) setProfile(data.profile);
+      if (data.services) setServices(data.services);
+      if (data.amenities) setAmenities(data.amenities);
+      if (data.galleryImages) setGalleryImages(data.galleryImages);
+      if (data.scheduleConfig) setScheduleConfig(data.scheduleConfig);
+      return true;
+    } catch (e) {
+      alert('Arquivo JSON inválido.');
+      return false;
+    }
+  };
+
+  // Reset Total para Dados Iniciais
   const resetToFactoryDefaults = () => {
     localStorage.removeItem(STORAGE_KEYS.SERVICES);
     localStorage.removeItem(STORAGE_KEYS.AMENITIES);
     localStorage.removeItem(STORAGE_KEYS.PROFILE);
     localStorage.removeItem(STORAGE_KEYS.SCHEDULE);
     localStorage.removeItem(STORAGE_KEYS.APPOINTMENTS);
+    localStorage.removeItem(STORAGE_KEYS.THEME);
+    localStorage.removeItem(STORAGE_KEYS.GALLERY);
 
+    setTheme(defaultTheme);
     setServices(BARBERSHOP_DATA.services);
     setAmenities(defaultAmenities);
     setProfile(defaultProfile);
+    setGalleryImages(defaultGallery);
     setScheduleConfig(defaultSchedule);
     setAppointments(BARBERSHOP_DATA.mockBarberAppointments);
   };
@@ -262,6 +456,10 @@ export function BarberProvider({ children }) {
   return (
     <BarberContext.Provider
       value={{
+        theme,
+        selectThemePreset,
+        setCustomColor,
+
         services,
         addService,
         updateService,
@@ -271,6 +469,10 @@ export function BarberProvider({ children }) {
         toggleAmenity,
         addAmenity,
         deleteAmenity,
+
+        galleryImages,
+        addGalleryImage,
+        removeGalleryImage,
 
         profile,
         updateProfile,
@@ -288,6 +490,8 @@ export function BarberProvider({ children }) {
         addAppointment,
         deleteAppointment,
 
+        exportConfiguration,
+        importConfiguration,
         resetToFactoryDefaults,
       }}
     >
