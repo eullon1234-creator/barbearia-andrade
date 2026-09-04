@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import BarberCard from './components/BarberCard';
@@ -9,17 +9,50 @@ import Footer from './components/Footer';
 import BottomBar from './components/BottomBar';
 import BookingModal from './components/BookingModal';
 import BarberDashboard from './components/BarberDashboard';
-import { Smartphone, Monitor, Sparkles } from 'lucide-react';
+import { Smartphone, Monitor } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('client'); // 'client' | 'barber'
+  // Verifica se a rota é do barbeiro via hash (#/barbeiro) ou query (?barbeiro=1)
+  const isBarberUrl = () => {
+    if (typeof window === 'undefined') return false;
+    const hash = (window.location.hash || '').toLowerCase();
+    const search = (window.location.search || '').toLowerCase();
+    return hash.includes('barbeiro') || search.includes('barbeiro');
+  };
+
+  const [isBarberRoute, setIsBarberRoute] = useState(isBarberUrl());
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [bookingService, setBookingService] = useState(null);
   const [isPhoneFrame, setIsPhoneFrame] = useState(true);
 
+  useEffect(() => {
+    const handleUrlChange = () => {
+      setIsBarberRoute(isBarberUrl());
+    };
+
+    window.addEventListener('hashchange', handleUrlChange);
+    window.addEventListener('popstate', handleUrlChange);
+
+    return () => {
+      window.removeEventListener('hashchange', handleUrlChange);
+      window.removeEventListener('popstate', handleUrlChange);
+    };
+  }, []);
+
   const handleOpenBooking = (service = null) => {
     setBookingService(service);
     setIsBookingOpen(true);
+  };
+
+  const handleGoToClient = () => {
+    window.location.hash = '';
+    // Se havia query param, limpa também
+    if (window.location.search.includes('barbeiro')) {
+      const url = new URL(window.location);
+      url.searchParams.delete('barbeiro');
+      window.history.pushState({}, '', url.pathname);
+    }
+    setIsBarberRoute(false);
   };
 
   return (
@@ -29,9 +62,11 @@ export default function App() {
       <div className="w-full bg-dark-900 border-b border-dark-800 py-2 px-4 hidden lg:flex items-center justify-between text-xs z-50">
         <div className="flex items-center gap-2 text-neutral-300">
           <span className="w-2 h-2 rounded-full bg-gold-400 animate-pulse" />
-          <span className="font-semibold text-white">Barbearia Andrade — Prévia do Aplicativo</span>
+          <span className="font-semibold text-white">Barbearia Andrade</span>
           <span className="text-neutral-500">•</span>
-          <span className="text-gold-400 font-medium">Pronto para demonstrar para Saymon Andrade</span>
+          <span className="text-gold-400 font-medium">
+            {isBarberRoute ? 'Área Exclusiva do Barbeiro (Saymon)' : 'Área do Cliente (Agendamento Online)'}
+          </span>
         </div>
 
         <div className="flex items-center gap-3">
@@ -79,17 +114,20 @@ export default function App() {
           </div>
         )}
 
-        {/* Navbar */}
-        <Navbar
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          onOpenBooking={() => handleOpenBooking(null)}
-        />
+        {/* Renderização Condicional por Link */}
+        {isBarberRoute ? (
+          /* ================= LINK EXCLUSIVO DO BARBEIRO ================= */
+          <main className="pb-8">
+            <BarberDashboard onBackToClientView={handleGoToClient} />
+          </main>
+        ) : (
+          /* ================= LINK PÚBLICO DO CLIENTE ================= */
+          <>
+            {/* Navbar sem botão de alternar */}
+            <Navbar onOpenBooking={() => handleOpenBooking(null)} />
 
-        {/* Conteúdo Principal */}
-        <main className="pb-8">
-          {activeTab === 'client' ? (
-            <>
+            {/* Conteúdo Principal do Cliente */}
+            <main className="pb-8">
               {/* Hero Banner */}
               <Hero onOpenBooking={handleOpenBooking} />
 
@@ -108,14 +146,11 @@ export default function App() {
               {/* Rodapé */}
               <Footer onOpenBooking={handleOpenBooking} />
 
-              {/* Barra Flutuante de Agendamento Rápido no Rodapé */}
-              <BottomBar onOpenBooking={handleOpenBooking} activeTab={activeTab} />
-            </>
-          ) : (
-            /* Demonstração da Área Exclusiva do Barbeiro */
-            <BarberDashboard onBackToClientView={() => setActiveTab('client')} />
-          )}
-        </main>
+              {/* Barra Flutuante de Agendamento Rápido */}
+              <BottomBar onOpenBooking={handleOpenBooking} activeTab="client" />
+            </main>
+          </>
+        )}
       </div>
 
       {/* Modal Interativo de Agendamento em 4 Passos */}

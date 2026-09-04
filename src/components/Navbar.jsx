@@ -1,8 +1,8 @@
 import React from 'react';
-import { Scissors, Clock, ShieldCheck, UserCheck, MessageCircle } from 'lucide-react';
+import { Scissors, MessageCircle } from 'lucide-react';
 import { BARBERSHOP_DATA } from '../data/barberData';
 
-export default function Navbar({ activeTab, setActiveTab, onOpenBooking }) {
+export default function Navbar({ onOpenBooking }) {
   // Determina se está aberto baseado na hora atual
   const isOpenNow = () => {
     const now = new Date();
@@ -49,29 +49,18 @@ export default function Navbar({ activeTab, setActiveTab, onOpenBooking }) {
           </div>
         </div>
 
-        {/* Alternador de Visão (Cliente vs Barbeiro) */}
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setActiveTab(activeTab === 'client' ? 'barber' : 'client')}
-            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all border ${
-              activeTab === 'barber'
-                ? 'bg-gold-500 text-dark-950 border-gold-400 shadow-gold-glow-sm'
-                : 'bg-dark-800/80 text-neutral-300 border-dark-700 hover:border-gold-500/50 hover:text-white'
-            }`}
-            title="Alternar entre visão do cliente e visão administrativa do barbeiro"
+        {/* Botão de Contato Rápido WhatsApp no Topo */}
+        <div className="flex items-center">
+          <a
+            href={`https://wa.me/${BARBERSHOP_DATA.whatsappNumber}?text=Olá%20Saymon!%20Gostaria%20de%20tirar%20uma%20dúvida%20sobre%20a%20Barbearia%20Andrade.`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5 text-xs font-bold transition-all shadow-sm"
+            title="Falar com Saymon Andrade no WhatsApp"
           >
-            {activeTab === 'barber' ? (
-              <>
-                <UserCheck className="w-3.5 h-3.5" />
-                <span>Área Barbeiro</span>
-              </>
-            ) : (
-              <>
-                <ShieldCheck className="w-3.5 h-3.5 text-gold-400" />
-                <span className="text-[11px]">Painel Barbeiro</span>
-              </>
-            )}
-          </button>
+            <MessageCircle className="w-3.5 h-3.5 fill-emerald-400/20" />
+            <span>WhatsApp</span>
+          </a>
         </div>
       </div>
     </header>

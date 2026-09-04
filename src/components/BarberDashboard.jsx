@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { 
-  Calendar, Clock, CheckCircle2, AlertCircle, Coffee, 
-  Palmtree, DollarSign, User, Plus, Edit2, ShieldAlert, ArrowLeft,
-  ChevronRight, Phone, Scissors, Sparkles
+  Calendar, Clock, CheckCircle2, Coffee, 
+  Palmtree, DollarSign, Edit2, ArrowLeft,
+  Phone, Scissors, Share2, Check, ExternalLink, ShieldCheck
 } from 'lucide-react';
 import { BARBERSHOP_DATA } from '../data/barberData';
 
@@ -12,6 +12,7 @@ export default function BarberDashboard({ onBackToClientView }) {
   const [services, setServices] = useState(BARBERSHOP_DATA.services);
   const [editingPriceId, setEditingPriceId] = useState(null);
   const [tempPrice, setTempPrice] = useState('');
+  const [copiedLink, setCopiedLink] = useState(false);
 
   // Total faturamento estimado do dia
   const totalBilling = appointments.reduce((acc, curr) => acc + curr.price, 0);
@@ -37,21 +38,48 @@ export default function BarberDashboard({ onBackToClientView }) {
     setEditingPriceId(null);
   };
 
+  const handleCopyClientLink = () => {
+    const clientUrl = window.location.origin + window.location.pathname;
+    navigator.clipboard.writeText(clientUrl).then(() => {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    });
+  };
+
   return (
     <div className="p-4 space-y-4 animate-in fade-in duration-300">
-      {/* Top Banner de Navegação de volta para o cliente */}
+      {/* Top Banner de Navegação */}
       <div className="flex items-center justify-between pb-3 border-b border-dark-800">
-        <button
-          onClick={onBackToClientView}
-          className="flex items-center gap-1.5 text-xs text-gold-400 font-bold hover:text-gold-300 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Voltar para Visão do Cliente</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-gold-500/20 text-gold-400 flex items-center justify-center">
+            <Scissors className="w-4 h-4" />
+          </div>
+          <div>
+            <h1 className="text-xs font-black text-white uppercase tracking-wider">
+              Painel do Barbeiro
+            </h1>
+            <p className="text-[10px] text-neutral-400">Área Exclusiva de Gestão</p>
+          </div>
+        </div>
 
-        <span className="px-2 py-0.5 rounded-full bg-gold-500/15 border border-gold-500/30 text-[10px] text-gold-300 font-bold uppercase tracking-wider">
-          Painel de Gestão
-        </span>
+        {/* Botão de Compartilhar Link do Cliente */}
+        <button
+          onClick={handleCopyClientLink}
+          className="px-2.5 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-750 text-gold-400 border border-gold-500/30 text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+          title="Copiar link que você envia para seus clientes agendarem"
+        >
+          {copiedLink ? (
+            <>
+              <Check className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-emerald-400">Link Copiado!</span>
+            </>
+          ) : (
+            <>
+              <Share2 className="w-3.5 h-3.5" />
+              <span>Copiar Link dos Clientes</span>
+            </>
+          )}
+        </button>
       </div>
 
       {/* Perfil & Status Rápido do Saymon */}
@@ -61,11 +89,14 @@ export default function BarberDashboard({ onBackToClientView }) {
             <img
               src={BARBERSHOP_DATA.images.barber}
               alt={BARBERSHOP_DATA.owner}
-              className="w-12 h-12 rounded-full object-cover border-2 border-gold-500"
+              className="w-12 h-12 rounded-full object-cover border-2 border-gold-500 shadow-gold-glow-sm"
             />
             <div>
-              <h2 className="text-base font-extrabold text-white">{BARBERSHOP_DATA.owner}</h2>
-              <p className="text-xs text-neutral-400">Barbearia Andrade • Administrador</p>
+              <div className="flex items-center gap-1.5">
+                <h2 className="text-base font-extrabold text-white">{BARBERSHOP_DATA.owner}</h2>
+                <ShieldCheck className="w-4 h-4 text-gold-400" />
+              </div>
+              <p className="text-xs text-neutral-400">Barbearia Andrade • Povoado Cigana</p>
             </div>
           </div>
 
@@ -154,9 +185,9 @@ export default function BarberDashboard({ onBackToClientView }) {
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-extrabold text-white flex items-center gap-1.5">
             <Calendar className="w-4 h-4 text-gold-400" />
-            <span>Agenda de Hoje (Ordem Cronológica)</span>
+            <span>Agenda de Hoje</span>
           </h3>
-          <span className="text-[11px] text-neutral-400">13:00 - 18:00</span>
+          <span className="text-[11px] text-neutral-400">13:00 às 18:00</span>
         </div>
 
         <div className="space-y-2">
@@ -282,6 +313,19 @@ export default function BarberDashboard({ onBackToClientView }) {
           ))}
         </div>
       </div>
+
+      {/* Atalho para visualizar como cliente */}
+      {onBackToClientView && (
+        <div className="pt-2 pb-6 text-center">
+          <button
+            onClick={onBackToClientView}
+            className="text-xs text-neutral-400 hover:text-gold-400 inline-flex items-center gap-1 transition-colors"
+          >
+            <ExternalLink className="w-3 h-3" />
+            <span>Ver como o cliente enxerga o app</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
