@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { BARBERSHOP_DATA } from '../data/barberData';
+import { db as firestoreDb } from '../services/firebase';
+import { collection, doc, setDoc, deleteDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 
 const BarberContext = createContext(null);
 
@@ -347,6 +349,37 @@ export function BarberProvider({ children }) {
     localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(appointments));
   }, [appointments]);
 
+  // Sincronização em tempo real com Firebase Firestore
+  useEffect(() => {
+    let unsubscribe = null;
+    try {
+      const colRef = collection(firestoreDb, 'appointments');
+      unsubscribe = onSnapshot(colRef, (snapshot) => {
+        if (!snapshot.empty) {
+          const list = snapshot.docs.map(d => ({
+            id: d.id,
+            ...d.data()
+          }));
+          // Ordena pelos mais recentes
+          list.sort((a, b) => {
+            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return timeB - timeA;
+          });
+          setAppointments(list);
+        }
+      }, (err) => {
+        console.warn('Firebase offline ou usando dados locais:', err.message);
+      });
+    } catch (e) {
+      console.warn('Erro ao conectar listener do Firestore:', e);
+    }
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.FEED_POSTS, JSON.stringify(feedPosts));
   }, [feedPosts]);
@@ -588,19 +621,44 @@ export function BarberProvider({ children }) {
   // Ações de Agendamentos
   const updateAppointmentStatus = (id, newStatus) => {
     setAppointments(prev => prev.map(a => a.id === id ? { ...a, status: newStatus } : a));
+    try {
+      updateDoc(doc(firestoreDb, 'appointments', id), { status: newStatus }).catch(err => {
+        console.warn('Não foi possível sincronizar status no Firestore:', err.message);
+      });
+    } catch (e) {
+      console.warn('Erro ao chamar updateDoc no Firestore:', e);
+    }
   };
 
   const addAppointment = (newApt) => {
     const created = {
       id: 'apt-' + Date.now(),
       ...newApt,
-      status: newApt.status || 'Confirmado'
+      status: newApt.status || 'Confirmado',
+      createdAt: new Date().toISOString()
     };
     setAppointments(prev => [created, ...prev]);
+
+    try {
+      // Remove campos undefined para evitar erros no Firestore
+      const safeData = JSON.parse(JSON.stringify(created, (k, v) => (v === undefined ? null : v)));
+      setDoc(doc(firestoreDb, 'appointments', created.id), safeData).catch(err => {
+        console.warn('Não foi possível salvar agendamento no Firestore:', err.message);
+      });
+    } catch (e) {
+      console.warn('Erro ao chamar setDoc no Firestore:', e);
+    }
   };
 
   const deleteAppointment = (id) => {
     setAppointments(prev => prev.filter(a => a.id !== id));
+    try {
+      deleteDoc(doc(firestoreDb, 'appointments', id)).catch(err => {
+        console.warn('Não foi possível excluir no Firestore:', err.message);
+      });
+    } catch (e) {
+      console.warn('Erro ao chamar deleteDoc no Firestore:', e);
+    }
   };
 
   // Ações do Feed do Instagram & Lookbook
