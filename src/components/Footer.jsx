@@ -1,5 +1,5 @@
 import React from 'react';
-import { Scissors, MessageCircle, MapPin, Heart } from 'lucide-react';
+import { Scissors, MessageCircle, MapPin } from 'lucide-react';
 import { InstagramIcon } from './Icons';
 import { BARBERSHOP_DATA } from '../data/barberData';
 
@@ -54,13 +54,8 @@ export default function Footer({ onOpenBooking }) {
           </a>
         </div>
 
-        <div className="pt-4 border-t border-dark-850 text-[11px] text-neutral-500">
-          <p>© {new Date().getFullYear()} Barbearia Andrade. Todos os direitos reservados.</p>
-          <p className="mt-1 flex items-center justify-center gap-1">
-            <span>Desenvolvido com</span>
-            <Heart className="w-3 h-3 text-rose-500 fill-rose-500" />
-            <span>para Saymon Andrade</span>
-          </p>
+        <div className="pt-4 border-t border-dark-850 text-xs text-neutral-400">
+          <p className="font-semibold tracking-wide text-neutral-300">Criado por Eullon</p>
         </div>
       </div>
     </footer>
