@@ -11,6 +11,7 @@ const STORAGE_KEYS = {
   APPOINTMENTS: 'andrade_appointments_v2',
   THEME: 'andrade_theme_v2',
   GALLERY: 'andrade_gallery_v2',
+  FEED_POSTS: 'andrade_feed_posts_v1',
 };
 
 // Paletas de cores pré-configuradas para qualquer estilo de barbearia
@@ -248,6 +249,73 @@ export function BarberProvider({ children }) {
     }
   });
 
+  // 8. Feed do Instagram & Lookbook de Cortes
+  const defaultFeedPosts = [
+    {
+      id: 'post-1',
+      serviceName: 'Combo Andrade (Corte + Barba)',
+      clientName: 'Marcos Vinícius',
+      clientInstagram: '@marcos_vini99',
+      image: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=800&q=80',
+      caption: 'Alinhamento completo no padrão Andrade: Degradê navalhado + barba desenhada com toalha quente. Sextou do melhor jeito! 💈🔥',
+      likes: 84,
+      timeAgo: 'Hoje',
+      comments: [
+        { id: 'c-1', user: 'Marcos Vinícius', text: 'Ficou impecável irmão! Parabéns pelo trampo.' },
+        { id: 'c-2', user: 'Gabriel Souza', text: 'Amanhã às 15h é a minha vez na cadeira 🔥' }
+      ]
+    },
+    {
+      id: 'post-2',
+      serviceName: 'Corte Masculino / Degradê',
+      clientName: 'Lucas Ribeiro',
+      clientInstagram: '@lucas_ribeiroo',
+      image: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=800&q=80',
+      caption: 'Fade médio bem trabalhado na régua. Precisão em cada detalhe para valorizar o formato do rosto! ✂️⚡',
+      likes: 112,
+      timeAgo: 'Ontem',
+      comments: [
+        { id: 'c-3', user: 'Lucas Ribeiro', text: 'O melhor degradê do Povoado Cigana sem dúvidas!' }
+      ]
+    },
+    {
+      id: 'post-3',
+      serviceName: 'Platinado / Luzes / Nevou',
+      clientName: 'Eduardo Costa',
+      clientInstagram: '@dudu_costa10',
+      image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=80',
+      caption: 'Nevou por aqui! ❄️ Platinado global com hidratação profunda e acabamento navalhado. Quem tem coragem de lançar esse estilo?',
+      likes: 147,
+      timeAgo: 'Há 3 dias',
+      comments: [
+        { id: 'c-4', user: 'Thiago N.', text: 'Ficou muito style! No fim de ano vou lançar o meu.' },
+        { id: 'c-5', user: 'Eduardo Costa', text: 'Sensacional, trabalho de mestre 👏' }
+      ]
+    },
+    {
+      id: 'post-4',
+      serviceName: 'Barba Alinhada / Toalha Quente',
+      clientName: 'Rafael Barbosa',
+      clientInstagram: '@rafa_barbosa',
+      image: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=800&q=80',
+      caption: 'Terapia de barba com toalha quente, óleos essenciais e massagem facial. Mais que um corte, uma experiência de relaxamento! 🧖‍♂️✨',
+      likes: 96,
+      timeAgo: 'Há 5 dias',
+      comments: [
+        { id: 'c-6', user: 'Rafael Barbosa', text: 'Essa toalha quente relaxa demais, recomendo muito!' }
+      ]
+    }
+  ];
+
+  const [feedPosts, setFeedPosts] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.FEED_POSTS);
+      return saved ? JSON.parse(saved) : defaultFeedPosts;
+    } catch (e) {
+      return defaultFeedPosts;
+    }
+  });
+
   // Persistência
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.SERVICES, JSON.stringify(services));
@@ -272,6 +340,10 @@ export function BarberProvider({ children }) {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(appointments));
   }, [appointments]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.FEED_POSTS, JSON.stringify(feedPosts));
+  }, [feedPosts]);
 
   // Ações de Serviços
   const addService = (newService) => {
@@ -401,6 +473,48 @@ export function BarberProvider({ children }) {
     setAppointments(prev => prev.filter(a => a.id !== id));
   };
 
+  // Ações do Feed do Instagram & Lookbook
+  const addFeedPost = (newPost) => {
+    const created = {
+      id: 'post-' + Date.now(),
+      likes: 1,
+      timeAgo: 'Hoje',
+      comments: [],
+      ...newPost,
+    };
+    setFeedPosts(prev => [created, ...prev]);
+  };
+
+  const deleteFeedPost = (id) => {
+    setFeedPosts(prev => prev.filter(p => p.id !== id));
+  };
+
+  const toggleLikeFeedPost = (id) => {
+    setFeedPosts(prev => prev.map(p => {
+      if (p.id === id) {
+        const isLiked = !!p.isLiked;
+        return {
+          ...p,
+          isLiked: !isLiked,
+          likes: Math.max(0, (p.likes || 0) + (isLiked ? -1 : 1))
+        };
+      }
+      return p;
+    }));
+  };
+
+  const addCommentToFeedPost = (postId, comment) => {
+    setFeedPosts(prev => prev.map(p => {
+      if (p.id === postId) {
+        return {
+          ...p,
+          comments: [...(p.comments || []), { id: 'c-' + Date.now(), ...comment }]
+        };
+      }
+      return p;
+    }));
+  };
+
   // Exportar / Importar Configuração Completa (Backup / Whitelabel)
   const exportConfiguration = () => {
     const config = {
@@ -410,6 +524,7 @@ export function BarberProvider({ children }) {
       amenities,
       galleryImages,
       scheduleConfig,
+      feedPosts,
     };
     const jsonStr = JSON.stringify(config, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
@@ -430,6 +545,7 @@ export function BarberProvider({ children }) {
       if (data.amenities) setAmenities(data.amenities);
       if (data.galleryImages) setGalleryImages(data.galleryImages);
       if (data.scheduleConfig) setScheduleConfig(data.scheduleConfig);
+      if (data.feedPosts) setFeedPosts(data.feedPosts);
       return true;
     } catch (e) {
       alert('Arquivo JSON inválido.');
@@ -492,6 +608,12 @@ export function BarberProvider({ children }) {
         updateAppointmentStatus,
         addAppointment,
         deleteAppointment,
+
+        feedPosts,
+        addFeedPost,
+        deleteFeedPost,
+        toggleLikeFeedPost,
+        addCommentToFeedPost,
 
         exportConfiguration,
         importConfiguration,

@@ -6,13 +6,15 @@ import {
   ShieldCheck, Sparkles, AlertCircle, Settings, 
   Building2, X, RotateCcw, ChevronRight, User, Eye, EyeOff,
   Upload, Camera, Loader2, Palette, Image as ImageIcon, Download,
-  BarChart3, TrendingUp, MapPin, Navigation, LocateFixed, Search
+  BarChart3, TrendingUp, MapPin, Navigation, LocateFixed, Search,
+  Heart, MessageCircle
 } from 'lucide-react';
 import { useBarber, THEME_PRESETS } from '../context/BarberContext';
 import { uploadImageToCloudinary } from '../services/cloudinary';
 import BarberAnalytics from './BarberAnalytics';
 import { getMapEmbedUrl } from '../utils/mapUtils';
 import ImageCropperModal from './ImageCropperModal';
+import { InstagramIcon } from './Icons';
 
 export default function BarberDashboard({ onBackToClientView }) {
   const {
@@ -23,10 +25,11 @@ export default function BarberDashboard({ onBackToClientView }) {
     profile, updateProfile, addSpecialty, removeSpecialty,
     scheduleConfig, updateSchedule, triggerQuickPause, resumeStatus, toggleVacationMode,
     appointments, updateAppointmentStatus, addAppointment, deleteAppointment,
+    feedPosts, addFeedPost, deleteFeedPost,
     exportConfiguration, importConfiguration, resetToFactoryDefaults
   } = useBarber();
 
-  const [activeSubTab, setActiveSubTab] = useState('dashboard'); // 'dashboard' | 'agenda' | 'servicos' | 'temas' | 'horarios' | 'perfil'
+  const [activeSubTab, setActiveSubTab] = useState('dashboard'); // 'dashboard' | 'agenda' | 'servicos' | 'feed' | 'temas' | 'horarios' | 'perfil'
   const [copiedLink, setCopiedLink] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
 
@@ -36,12 +39,14 @@ export default function BarberDashboard({ onBackToClientView }) {
   const [isUploadingCoverImage, setIsUploadingCoverImage] = useState(false);
   const [isUploadingLogoImage, setIsUploadingLogoImage] = useState(false);
   const [isUploadingGalleryImage, setIsUploadingGalleryImage] = useState(false);
+  const [isUploadingFeedImage, setIsUploadingFeedImage] = useState(false);
 
   const serviceFileInputRef = useRef(null);
   const profileFileInputRef = useRef(null);
   const coverFileInputRef = useRef(null);
   const logoFileInputRef = useRef(null);
   const galleryFileInputRef = useRef(null);
+  const feedFileInputRef = useRef(null);
   const jsonFileInputRef = useRef(null);
 
   // Estado do Modal de Recorte e Ajuste de Fotos
@@ -63,6 +68,16 @@ export default function BarberDashboard({ onBackToClientView }) {
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
   const [appointmentForm, setAppointmentForm] = useState({
     client: '', phone: '', service: '', time: '14:00', price: '', payment: 'Pix'
+  });
+
+  // Estados para Publicação no Feed do Instagram
+  const [isPostModalOpen, setIsPostModalOpen] = useState(false);
+  const [postForm, setPostForm] = useState({
+    serviceName: '',
+    clientName: '',
+    clientInstagram: '',
+    caption: '',
+    image: '',
   });
 
   const [newSpecialtyText, setNewSpecialtyText] = useState('');
@@ -232,6 +247,82 @@ export default function BarberDashboard({ onBackToClientView }) {
     };
     reader.readAsDataURL(file);
     e.target.value = '';
+  };
+
+  const handleFeedFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setCropperModal({
+        isOpen: true,
+        imageSrc: ev.target.result,
+        title: 'Recortar Foto para o Feed Instagram',
+        cropType: 'service',
+        targetCallback: async (croppedFile) => {
+          try {
+            setIsUploadingFeedImage(true);
+            showToast('Enviando foto para o Cloudinary...');
+            const imageUrl = await uploadImageToCloudinary(croppedFile);
+            setPostForm(prev => ({ ...prev, image: imageUrl }));
+            showToast('Foto preparada para publicação!');
+            setCropperModal(prev => ({ ...prev, isOpen: false }));
+          } catch (err) {
+            alert('Erro ao enviar imagem: ' + (err.message || 'Erro no upload'));
+          } finally {
+            setIsUploadingFeedImage(false);
+          }
+        }
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleSavePostForm = (e) => {
+    e.preventDefault();
+    if (!postForm.image) {
+      alert('Por favor, envie ou cole uma foto do corte.');
+      return;
+    }
+    if (!postForm.serviceName) {
+      alert('Selecione qual serviço/corte foi realizado.');
+      return;
+    }
+
+    let formattedHandle = (postForm.clientInstagram || '').trim();
+    if (formattedHandle) {
+      // Remove @ inicial se houver para normalizar e recolocar
+      formattedHandle = '@' + formattedHandle.replace(/^@+/, '');
+    }
+
+    addFeedPost({
+      serviceName: postForm.serviceName,
+      clientName: postForm.clientName.trim() || 'Cliente VIP',
+      clientInstagram: formattedHandle,
+      image: postForm.image,
+      caption: postForm.caption.trim() || 'Corte realizado no padrão Andrade 💈✂️',
+      likes: Math.floor(Math.random() * 25) + 20,
+      timeAgo: 'Hoje',
+      comments: []
+    });
+
+    showToast('Publicação criada no Feed do Instagram!');
+    setIsPostModalOpen(false);
+    setPostForm({
+      serviceName: '',
+      clientName: '',
+      clientInstagram: '',
+      caption: '',
+      image: '',
+    });
+  };
+
+  const handleDeletePost = (id) => {
+    if (confirm('Tem certeza que deseja apagar esta publicação do Feed?')) {
+      deleteFeedPost(id);
+      showToast('Publicação removida do feed!');
+    }
   };
 
   const handleImportJsonFile = (e) => {
@@ -548,8 +639,8 @@ export default function BarberDashboard({ onBackToClientView }) {
         </div>
       </div>
 
-      {/* Navegação entre as 6 Abas do Painel */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 p-1.5 rounded-2xl bg-dark-900 border border-dark-800 text-[11px] font-bold">
+      {/* Navegação entre as 7 Abas do Painel */}
+      <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5 p-1.5 rounded-2xl bg-dark-900 border border-dark-800 text-[10px] sm:text-[11px] font-bold">
         <button
           onClick={() => setActiveSubTab('dashboard')}
           className={`py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
@@ -581,6 +672,16 @@ export default function BarberDashboard({ onBackToClientView }) {
         </button>
 
         <button
+          onClick={() => setActiveSubTab('feed')}
+          className={`py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+            activeSubTab === 'feed' ? 'theme-gradient-accent text-dark-950 font-black shadow-md' : 'text-neutral-400 hover:text-white hover:bg-dark-800/60'
+          }`}
+        >
+          <InstagramIcon className="w-3.5 h-3.5" />
+          <span>Feed Insta</span>
+        </button>
+
+        <button
           onClick={() => setActiveSubTab('temas')}
           className={`py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
             activeSubTab === 'temas' ? 'theme-gradient-accent text-dark-950 font-black shadow-md' : 'text-neutral-400 hover:text-white hover:bg-dark-800/60'
@@ -602,7 +703,7 @@ export default function BarberDashboard({ onBackToClientView }) {
 
         <button
           onClick={() => setActiveSubTab('perfil')}
-          className={`py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+          className={`py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1 transition-all cursor-pointer col-span-2 sm:col-span-1 ${
             activeSubTab === 'perfil' ? 'theme-gradient-accent text-dark-950 font-black shadow-md' : 'text-neutral-400 hover:text-white hover:bg-dark-800/60'
           }`}
         >
@@ -1731,6 +1832,165 @@ export default function BarberDashboard({ onBackToClientView }) {
         </div>
       )}
 
+      {/* =========================================================================
+          ABA 3: GERENCIAR FEED INSTAGRAM & MARCAÇÃO DE CLIENTES
+      ========================================================================= */}
+      {activeSubTab === 'feed' && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          {/* Top Banner Informativo & Ação de Novo Post */}
+          <div className="p-4 rounded-2xl bg-dark-900 border border-dark-750 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-rose-500/20 flex-shrink-0">
+                <InstagramIcon className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm text-white flex items-center gap-1.5">
+                  <span>Feed Instagram dos Cortes</span>
+                  <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-bold">
+                    @{profile.instagram || 'saymon_andradeee'}
+                  </span>
+                </h3>
+                <p className="text-[11px] text-neutral-400 mt-0.5">
+                  Poste fotos dos cortes na régua e marque o @ do Instagram dos seus clientes!
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsPostModalOpen(true)}
+              className="w-full sm:w-auto py-2.5 px-4 rounded-xl theme-gradient-accent text-dark-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-md hover:opacity-95 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>Publicar no Feed</span>
+            </button>
+          </div>
+
+          {/* Cards de Métricas do Feed */}
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="p-3 rounded-2xl bg-dark-900 border border-dark-800">
+              <span className="text-[10px] font-bold uppercase text-neutral-400 block mb-1">Posts no Feed</span>
+              <span className="text-xl font-black text-white">{feedPosts.length}</span>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-dark-900 border border-dark-800">
+              <span className="text-[10px] font-bold uppercase text-neutral-400 block mb-1">Total Curtidas</span>
+              <span className="text-xl font-black text-rose-400 flex items-center justify-center gap-1">
+                <Heart className="w-4 h-4 fill-rose-400" />
+                <span>{feedPosts.reduce((acc, p) => acc + (p.likes || 0), 0)}</span>
+              </span>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-dark-900 border border-dark-800">
+              <span className="text-[10px] font-bold uppercase text-neutral-400 block mb-1">Marcados (@)</span>
+              <span className="text-xl font-black theme-text-accent">
+                {feedPosts.filter(p => p.clientInstagram).length}
+              </span>
+            </div>
+          </div>
+
+          {/* Lista de Publicações do Feed */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold text-neutral-300 uppercase tracking-wider">
+                Publicações Ativas no Catálogo ({feedPosts.length})
+              </h4>
+              <span className="text-[10px] text-neutral-500">
+                Ordem cronológica
+              </span>
+            </div>
+
+            {feedPosts.length === 0 ? (
+              <div className="p-8 rounded-2xl bg-dark-900 border border-dark-800 text-center space-y-2">
+                <InstagramIcon className="w-8 h-8 text-neutral-600 mx-auto" />
+                <p className="text-xs text-neutral-400">Nenhuma foto postada no Feed ainda.</p>
+                <button
+                  onClick={() => setIsPostModalOpen(true)}
+                  className="py-2 px-4 rounded-xl theme-gradient-accent text-dark-950 font-black text-xs inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                  <span>Criar Primeira Postagem</span>
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-2.5">
+                {feedPosts.map((post) => (
+                  <div
+                    key={post.id}
+                    className="p-3 rounded-2xl bg-dark-900 border border-dark-800 flex items-center gap-3 hover:border-dark-700 transition-all"
+                  >
+                    {/* Foto da publicação */}
+                    <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-dark-950 border border-dark-750 flex-shrink-0 relative">
+                      <img
+                        src={post.image}
+                        alt={post.serviceName}
+                        className="w-full h-full object-cover"
+                      />
+                      {post.clientInstagram && (
+                        <div className="absolute bottom-1 right-1 p-1 rounded-md bg-black/75 text-rose-400 backdrop-blur-sm" title={`Cliente: ${post.clientInstagram}`}>
+                          <InstagramIcon className="w-3 h-3" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Informações */}
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="px-2 py-0.5 rounded-md bg-dark-800 border border-dark-700 text-[10px] font-bold text-white truncate max-w-[150px]">
+                          {post.serviceName}
+                        </span>
+
+                        {post.clientInstagram ? (
+                          <a
+                            href={`https://instagram.com/${post.clientInstagram.replace('@', '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gradient-to-r from-rose-500/15 via-pink-500/15 to-purple-500/15 border border-pink-500/30 text-pink-400 hover:text-pink-300 text-[10px] font-bold transition-all"
+                          >
+                            <InstagramIcon className="w-2.5 h-2.5" />
+                            <span>{post.clientInstagram}</span>
+                            <ExternalLink className="w-2 h-2 opacity-60" />
+                          </a>
+                        ) : (
+                          <span className="text-[10px] text-neutral-500">
+                            {post.clientName || 'Cliente sem @'}
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-neutral-300 line-clamp-2 leading-relaxed">
+                        {post.caption}
+                      </p>
+
+                      <div className="flex items-center gap-3 text-[10px] text-neutral-400 pt-0.5">
+                        <span className="flex items-center gap-1 text-rose-400 font-bold">
+                          <Heart className="w-3 h-3 fill-rose-400" />
+                          <span>{post.likes || 0}</span>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <MessageCircle className="w-3 h-3 text-neutral-400" />
+                          <span>{post.comments?.length || 0}</span>
+                        </span>
+                        <span>•</span>
+                        <span>{post.timeAgo || 'Recente'}</span>
+                      </div>
+                    </div>
+
+                    {/* Ação de exclusão */}
+                    <button
+                      onClick={() => handleDeletePost(post.id)}
+                      className="p-2 rounded-xl bg-dark-800 hover:bg-rose-500/20 text-neutral-400 hover:text-rose-400 transition-colors flex-shrink-0 cursor-pointer"
+                      title="Excluir post do feed"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Atalho para Abrir Visão do Cliente */}
       {onBackToClientView && (
         <div className="pt-2 pb-6 text-center">
@@ -2084,6 +2344,184 @@ export default function BarberDashboard({ onBackToClientView }) {
         </div>
       )}
 
+      {/* =========================================================================
+          MODAL: PUBLICAR NOVO CORTE NO FEED INSTAGRAM
+      ========================================================================= */}
+      {isPostModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-dark-900 border border-dark-700 rounded-3xl p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-dark-800">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 flex items-center justify-center text-white">
+                  <InstagramIcon className="w-4 h-4" />
+                </div>
+                <h3 className="text-sm font-extrabold text-white">
+                  Nova Publicação no Feed Instagram
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsPostModalOpen(false)}
+                className="p-1.5 rounded-full bg-dark-800 text-neutral-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePostForm} className="space-y-3.5 text-xs">
+              {/* Upload e Recorte da Foto */}
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-neutral-300 mb-1.5">
+                  Foto do Corte / Trabalho:
+                </label>
+
+                <div className="p-3 rounded-2xl bg-dark-850 border border-dark-750 space-y-2.5">
+                  <div className="flex items-center gap-3">
+                    {postForm.image ? (
+                      <img
+                        src={postForm.image}
+                        alt="Preview"
+                        className="w-18 h-18 rounded-xl object-cover border border-neutral-600 shadow-md"
+                      />
+                    ) : (
+                      <div className="w-18 h-18 rounded-xl bg-dark-900 border border-dark-700 flex items-center justify-center text-neutral-500">
+                        <Camera className="w-6 h-6" />
+                      </div>
+                    )}
+
+                    <div className="flex-1">
+                      <input
+                        ref={feedFileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFeedFileUpload}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        disabled={isUploadingFeedImage}
+                        onClick={() => feedFileInputRef.current?.click()}
+                        className="w-full py-2.5 px-3 rounded-xl theme-gradient-accent text-dark-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                      >
+                        {isUploadingFeedImage ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Enviando para Cloudinary...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Camera className="w-3.5 h-3.5" />
+                            <span>Escolher Foto & Recortar</span>
+                          </>
+                        )}
+                      </button>
+                      <span className="text-[10px] text-neutral-400 block mt-1 text-center">
+                        Você poderá recortar e enquadrar antes de postar
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-dark-800">
+                    <span className="text-[9px] uppercase font-bold text-neutral-500 block mb-0.5">
+                      Ou cole o link direto da imagem:
+                    </span>
+                    <input
+                      type="url"
+                      placeholder="https://..."
+                      value={postForm.image}
+                      onChange={(e) => setPostForm({ ...postForm, image: e.target.value })}
+                      className="w-full p-2 rounded-lg bg-dark-950 border border-dark-700 text-neutral-300 text-[11px]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Serviço Correspondente */}
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-neutral-300 mb-1">
+                  Serviço / Estilo do Corte:
+                </label>
+                <select
+                  required
+                  value={postForm.serviceName}
+                  onChange={(e) => setPostForm({ ...postForm, serviceName: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-dark-850 border border-dark-700 text-white font-bold"
+                >
+                  <option value="">Selecione o corte realizado...</option>
+                  {services.map((svc) => (
+                    <option key={svc.id} value={svc.name}>
+                      {svc.name} - R$ {svc.price?.toFixed(2)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Nome do Cliente & Instagram @ */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-neutral-300 mb-1">
+                    Nome do Cliente:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Marcos Vinícius"
+                    value={postForm.clientName}
+                    onChange={(e) => setPostForm({ ...postForm, clientName: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-dark-850 border border-dark-700 text-white font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-pink-400 mb-1 flex items-center gap-1">
+                    <InstagramIcon className="w-3 h-3" />
+                    <span>Instagram (@ do Cliente):</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: @marcos_vini99"
+                    value={postForm.clientInstagram}
+                    onChange={(e) => setPostForm({ ...postForm, clientInstagram: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-dark-850 border border-pink-500/40 text-pink-300 font-bold focus:border-pink-500"
+                  />
+                </div>
+              </div>
+              <p className="text-[10px] text-neutral-400 -mt-1">
+                💡 Ao colocar o @, um selo clicável aparecerá na foto direcionando para o perfil dele no Instagram.
+              </p>
+
+              {/* Legenda do Post */}
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-neutral-300 mb-1">
+                  Legenda da Publicação:
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Ex: Degradê navalhado alinhado na régua! Cliente satisfeito pronto pro fim de semana. 💈✂️🔥"
+                  value={postForm.caption}
+                  onChange={(e) => setPostForm({ ...postForm, caption: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-dark-850 border border-dark-700 text-white leading-relaxed"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-dark-800 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsPostModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-dark-800 text-neutral-300 font-bold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 text-white font-black shadow-md hover:opacity-95 transition-all"
+                >
+                  Publicar no Feed
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Modal de Recorte e Edição de Fotos Interativo */}
       <ImageCropperModal
         isOpen={cropperModal.isOpen}
@@ -2096,7 +2534,7 @@ export default function BarberDashboard({ onBackToClientView }) {
             await cropperModal.targetCallback(croppedFile);
           }
         }}
-        isUploading={isUploadingServiceImage || isUploadingProfileImage || isUploadingCoverImage || isUploadingLogoImage || isUploadingGalleryImage}
+        isUploading={isUploadingServiceImage || isUploadingProfileImage || isUploadingCoverImage || isUploadingLogoImage || isUploadingGalleryImage || isUploadingFeedImage}
         themeColor={theme.primary}
       />
 

@@ -7,128 +7,19 @@ import {
 import { useBarber } from '../context/BarberContext';
 import { InstagramIcon } from './Icons';
 
-export default function FeedInstagramLookbook({ onOpenBooking }) {
-  const { profile, services, theme } = useBarber();
-
-  const STORAGE_KEY_LIKES = 'barbearia_feed_likes_v1';
-  const STORAGE_KEY_COMMENTS = 'barbearia_feed_comments_v1';
-
-  // Posts do feed baseados nos cortes reais
-  const initialPosts = [
-    {
-      id: 'post-1',
-      serviceName: 'Combo Andrade (Corte + Barba)',
-      image: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=800&q=80',
-      caption: 'Alinhamento completo no padrão Andrade: Degradê navalhado + barba desenhada com toalha quente. Sextou do melhor jeito! 💈🔥',
-      initialLikes: 84,
-      timeAgo: 'Hoje',
-      initialComments: [
-        { id: 'c-1', user: 'Marcos V.', text: 'Ficou impecável irmão! Parabéns pelo trampo.' },
-        { id: 'c-2', user: 'Gabriel S.', text: 'Amanhã às 15h é a minha vez na cadeira 🔥' }
-      ]
-    },
-    {
-      id: 'post-2',
-      serviceName: 'Corte Masculino / Degradê',
-      image: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=800&q=80',
-      caption: 'Fade médio bem trabalhado na régua. Precisão em cada detalhe para valorizar o formato do rosto! ✂️⚡',
-      initialLikes: 112,
-      timeAgo: 'Ontem',
-      initialComments: [
-        { id: 'c-3', user: 'Lucas R.', text: 'O melhor degradê do Povoado Cigana sem dúvidas!' }
-      ]
-    },
-    {
-      id: 'post-3',
-      serviceName: 'Platinado / Luzes / Nevou',
-      image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=80',
-      caption: 'Nevou por aqui! ❄️ Platinado global com hidratação profunda e acabamento navalhado. Quem tem coragem de lançar esse estilo?',
-      initialLikes: 147,
-      timeAgo: 'Há 3 dias',
-      initialComments: [
-        { id: 'c-4', user: 'Thiago N.', text: 'Ficou muito style! No fim de ano vou lançar o meu.' },
-        { id: 'c-5', user: 'Eduardo C.', text: 'Sensacional, trabalho de mestre 👏' }
-      ]
-    },
-    {
-      id: 'post-4',
-      serviceName: 'Barba Alinhada / Toalha Quente',
-      image: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=800&q=80',
-      caption: 'Terapia de barba com toalha quente, óleos essenciais e massagem facial. Mais que um corte, uma experiência de relaxamento! 🧖‍♂️✨',
-      initialLikes: 96,
-      timeAgo: 'Há 5 dias',
-      initialComments: [
-        { id: 'c-6', user: 'Rafael B.', text: 'Essa toalha quente relaxa demais, recomendo muito!' }
-      ]
-    }
-  ];
-
-  // Estado de curtidas (id do post -> boolean)
-  const [likedPosts, setLikedPosts] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_LIKES);
-      return saved ? JSON.parse(saved) : {};
-    } catch (e) {
-      return {};
-    }
-  });
-
-  // Estado de contagem de likes (id do post -> número)
-  const [likeCounts, setLikeCounts] = useState(() => {
-    const counts = {};
-    initialPosts.forEach(p => {
-      counts[p.id] = p.initialLikes;
-    });
-    return counts;
-  });
-
-  // Estado de comentários (id do post -> lista)
-  const [commentsMap, setCommentsMap] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_COMMENTS);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-
-    const map = {};
-    initialPosts.forEach(p => {
-      map[p.id] = p.initialComments;
-    });
-    return map;
-  });
+export default function FeedInstagramLookbook({ onOpenBooking, onOpenFeedView }) {
+  const { profile, services, theme, feedPosts, toggleLikeFeedPost, addCommentToFeedPost } = useBarber();
 
   // Post com comentários abertos (accordion)
   const [openCommentsPostId, setOpenCommentsPostId] = useState(null);
   const [commentInputs, setCommentInputs] = useState({});
   const [heartAnimPostId, setHeartAnimPostId] = useState(null);
 
-  // Salva curtidas no localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_LIKES, JSON.stringify(likedPosts));
-    } catch (e) {}
-  }, [likedPosts]);
-
-  // Salva comentários no localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_COMMENTS, JSON.stringify(commentsMap));
-    } catch (e) {}
-  }, [commentsMap]);
-
-  // Handler de Curtir
-  const handleToggleLike = (postId) => {
-    const isCurrentlyLiked = !!likedPosts[postId];
-    setLikedPosts(prev => ({ ...prev, [postId]: !isCurrentlyLiked }));
-    setLikeCounts(prev => ({
-      ...prev,
-      [postId]: (prev[postId] || 0) + (isCurrentlyLiked ? -1 : 1)
-    }));
-  };
-
   // Duplo clique na foto (Double-tap heart)
   const handleDoubleTap = (postId) => {
-    if (!likedPosts[postId]) {
-      handleToggleLike(postId);
+    const post = (feedPosts || []).find(p => p.id === postId);
+    if (post && !post.isLiked) {
+      toggleLikeFeedPost(postId);
     }
     setHeartAnimPostId(postId);
     setTimeout(() => setHeartAnimPostId(null), 850);
@@ -140,16 +31,10 @@ export default function FeedInstagramLookbook({ onOpenBooking }) {
     const text = (commentInputs[postId] || '').trim();
     if (!text) return;
 
-    const newComment = {
-      id: 'c-' + Date.now(),
+    addCommentToFeedPost(postId, {
       user: 'Cliente VIP',
       text
-    };
-
-    setCommentsMap(prev => ({
-      ...prev,
-      [postId]: [...(prev[postId] || []), newComment]
-    }));
+    });
 
     setCommentInputs(prev => ({ ...prev, [postId]: '' }));
   };
@@ -198,7 +83,7 @@ export default function FeedInstagramLookbook({ onOpenBooking }) {
           </a>
         </div>
 
-        {/* Título da Seção */}
+        {/* Título da Seção & Acesso ao Feed */}
         <div className="flex items-center justify-between pt-1">
           <div>
             <h2 className="text-base font-extrabold text-white flex items-center gap-1.5">
@@ -209,14 +94,52 @@ export default function FeedInstagramLookbook({ onOpenBooking }) {
             </h2>
             <p className="text-xs text-neutral-400">Veja os trabalhos recentes e escolha o seu</p>
           </div>
+
+          {onOpenFeedView && (
+            <button
+              onClick={onOpenFeedView}
+              className="py-1 px-2.5 rounded-xl bg-gradient-to-r from-rose-500/15 via-pink-500/15 to-purple-500/15 border border-pink-500/30 text-pink-300 hover:text-white text-xs font-black flex items-center gap-1.5 shadow-sm cursor-pointer"
+            >
+              <InstagramIcon className="w-3.5 h-3.5" />
+              <span>Ver no Insta</span>
+            </button>
+          )}
         </div>
+
+        {/* Banner para abrir a aba exclusiva estilo Instagram */}
+        {onOpenFeedView && (
+          <button
+            onClick={onOpenFeedView}
+            className="w-full p-3.5 rounded-2xl bg-gradient-to-r from-purple-900/30 via-pink-900/25 to-amber-900/30 border border-pink-500/30 hover:border-pink-500/60 flex items-center justify-between transition-all group cursor-pointer shadow-lg text-left"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform flex-shrink-0">
+                <InstagramIcon className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-black text-white">
+                    Abrir Aba Exclusiva do Instagram
+                  </span>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                </div>
+                <span className="text-[11px] text-pink-200 block mt-0.5">
+                  Stories, fotos em grade 3x3 e @ dos clientes marcados!
+                </span>
+              </div>
+            </div>
+            <div className="p-2 rounded-xl bg-pink-500/20 text-pink-300 group-hover:bg-pink-500 group-hover:text-dark-950 transition-all">
+              <ChevronRight className="w-4 h-4" />
+            </div>
+          </button>
+        )}
 
         {/* Lista de Posts do Feed */}
         <div className="space-y-4">
-          {initialPosts.map((post) => {
-            const isLiked = !!likedPosts[post.id];
-            const currentLikes = likeCounts[post.id] || post.initialLikes;
-            const comments = commentsMap[post.id] || [];
+          {(feedPosts || []).map((post) => {
+            const isLiked = !!post.isLiked;
+            const currentLikes = post.likes || 0;
+            const comments = post.comments || [];
             const isCommentsOpen = openCommentsPostId === post.id;
 
             return (
@@ -244,7 +167,7 @@ export default function FeedInstagramLookbook({ onOpenBooking }) {
                   </div>
 
                   <span className="text-[10px] text-neutral-500 font-medium">
-                    {post.timeAgo}
+                    {post.timeAgo || 'Hoje'}
                   </span>
                 </div>
 
@@ -272,6 +195,22 @@ export default function FeedInstagramLookbook({ onOpenBooking }) {
                     <Scissors className="w-3 h-3 theme-text-accent" />
                     <span>{post.serviceName}</span>
                   </div>
+
+                  {/* Tag com @ do Cliente Marcado no Instagram */}
+                  {post.clientInstagram && (
+                    <a
+                      href={`https://instagram.com/${post.clientInstagram.replace('@', '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full bg-black/85 backdrop-blur-md border border-pink-500/50 text-pink-300 hover:text-white hover:border-pink-400 text-[10px] font-bold flex items-center gap-1.5 shadow-lg transition-all"
+                      title={`Ver perfil de ${post.clientInstagram} no Instagram`}
+                    >
+                      <InstagramIcon className="w-3 h-3 text-pink-400" />
+                      <span>{post.clientInstagram}</span>
+                      <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                    </a>
+                  )}
                 </div>
 
                 {/* Barra de Ações (Curtir, Comentar, Agendar) */}
@@ -280,7 +219,7 @@ export default function FeedInstagramLookbook({ onOpenBooking }) {
                     <div className="flex items-center gap-3">
                       {/* Botão Curtir */}
                       <button
-                        onClick={() => handleToggleLike(post.id)}
+                        onClick={() => toggleLikeFeedPost(post.id)}
                         className={`flex items-center gap-1.5 text-xs font-extrabold transition-all cursor-pointer ${
                           isLiked ? 'text-rose-500' : 'text-neutral-300 hover:text-white'
                         }`}

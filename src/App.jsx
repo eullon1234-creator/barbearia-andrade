@@ -12,6 +12,7 @@ import BookingModal from './components/BookingModal';
 import BarberDashboard from './components/BarberDashboard';
 import PwaInstallBanner from './components/PwaInstallBanner';
 import FeedInstagramLookbook from './components/FeedInstagramLookbook';
+import InstagramFeedView from './components/InstagramFeedView';
 import ReviewsSection from './components/ReviewsSection';
 import { Smartphone, Monitor } from 'lucide-react';
 
@@ -25,6 +26,7 @@ export default function App() {
   };
 
   const [isBarberRoute, setIsBarberRoute] = useState(isBarberUrl());
+  const [clientTab, setClientTab] = useState('home'); // 'home' | 'feed'
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [bookingService, setBookingService] = useState(null);
   const [isPhoneFrame, setIsPhoneFrame] = useState(true);
@@ -126,46 +128,72 @@ export default function App() {
           </main>
         ) : (
           /* ================= LINK PÚBLICO DO CLIENTE ================= */
-          <>
-            {/* Navbar sem botão de alternar */}
-            <Navbar onOpenBooking={() => handleOpenBooking(null)} />
+          clientTab === 'feed' ? (
+            /* Visualização Exclusiva da Aba do Instagram */
+            <>
+              <InstagramFeedView
+                onBackToHome={() => setClientTab('home')}
+                onOpenBooking={handleOpenBooking}
+              />
+              <BottomBar
+                onOpenBooking={handleOpenBooking}
+                clientTab={clientTab}
+                onSelectTab={setClientTab}
+              />
+            </>
+          ) : (
+            /* Visualização da Página Inicial da Barbearia */
+            <>
+              <Navbar
+                onOpenBooking={() => handleOpenBooking(null)}
+                clientTab={clientTab}
+                onSelectTab={setClientTab}
+              />
 
-            {/* Banner de Instalação PWA */}
-            <PwaInstallBanner />
+              {/* Banner de Instalação PWA */}
+              <PwaInstallBanner />
 
-            {/* Conteúdo Principal do Cliente */}
-            <main className="pb-8">
-              {/* Hero Banner */}
-              <Hero onOpenBooking={handleOpenBooking} />
+              {/* Conteúdo Principal do Cliente */}
+              <main className="pb-16">
+                {/* Hero Banner */}
+                <Hero onOpenBooking={handleOpenBooking} />
 
-              {/* Card do Barbeiro Saymon */}
-              <BarberCard />
+                {/* Card do Barbeiro Saymon */}
+                <BarberCard />
 
-              {/* Catálogo de Serviços */}
-              <ServicesSection onOpenBooking={handleOpenBooking} />
+                {/* Catálogo de Serviços */}
+                <ServicesSection onOpenBooking={handleOpenBooking} />
 
-              {/* Feed de Cortes Estilo Instagram */}
-              <FeedInstagramLookbook onOpenBooking={handleOpenBooking} />
+                {/* Feed de Cortes Estilo Instagram */}
+                <FeedInstagramLookbook
+                  onOpenBooking={handleOpenBooking}
+                  onOpenFeedView={() => setClientTab('feed')}
+                />
 
-              {/* Avaliações & Depoimentos Reais */}
-              <ReviewsSection />
+                {/* Avaliações & Depoimentos Reais */}
+                <ReviewsSection />
 
-              {/* Comodidades da Barbearia */}
-              <AmenitiesSection />
+                {/* Comodidades da Barbearia */}
+                <AmenitiesSection />
 
-              {/* Galeria de Fotos do Espaço */}
-              <GallerySection />
+                {/* Galeria de Fotos do Espaço */}
+                <GallerySection />
 
-              {/* Endereço & Mapa */}
-              <LocationSection />
+                {/* Endereço & Mapa */}
+                <LocationSection />
 
-              {/* Rodapé */}
-              <Footer onOpenBooking={handleOpenBooking} />
+                {/* Rodapé */}
+                <Footer onOpenBooking={handleOpenBooking} />
 
-              {/* Barra Flutuante de Agendamento Rápido */}
-              <BottomBar onOpenBooking={handleOpenBooking} activeTab="client" />
-            </main>
-          </>
+                {/* Barra Flutuante de Agendamento e Navegação */}
+                <BottomBar
+                  onOpenBooking={handleOpenBooking}
+                  clientTab={clientTab}
+                  onSelectTab={setClientTab}
+                />
+              </main>
+            </>
+          )
         )}
       </div>
 
