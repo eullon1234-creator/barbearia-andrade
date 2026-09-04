@@ -19,15 +19,6 @@ export default function InstagramFeedView({ onBackToHome, onOpenBooking }) {
   const [heartAnimPostId, setHeartAnimPostId] = useState(null);
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // Destaques / Stories do Perfil
-  const stories = [
-    { id: 'st-1', label: 'Degradês', icon: '✂️', image: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=300&q=80' },
-    { id: 'st-2', label: 'Barba', icon: '🧖‍♂️', image: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=300&q=80' },
-    { id: 'st-3', label: 'Nevou', icon: '❄️', image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=300&q=80' },
-    { id: 'st-4', label: 'O Espaço', icon: '💈', image: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=300&q=80' },
-    { id: 'st-5', label: 'Saymon', icon: '👑', image: profile.image }
-  ];
-
   // Duplo clique na foto (Double-Tap Heart)
   const handleDoubleTap = (postId) => {
     const post = feedPosts.find(p => p.id === postId);
@@ -113,7 +104,7 @@ export default function InstagramFeedView({ onBackToHome, onOpenBooking }) {
         <div className="flex items-center justify-between">
           {/* Foto de Perfil com Story Ring */}
           <div className="relative">
-            <div className="w-18 h-18 rounded-full p-0.5 bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 shadow-md">
+            <div className="w-20 h-20 rounded-full p-0.5 bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 shadow-md">
               <img
                 src={profile.image}
                 alt={profile.owner}
@@ -175,23 +166,6 @@ export default function InstagramFeedView({ onBackToHome, onOpenBooking }) {
             <InstagramIcon className="w-3.5 h-3.5" />
             <span>Seguir</span>
           </a>
-        </div>
-
-        {/* 3. Barra de Destaques / Stories */}
-        <div className="pt-2 border-t border-dark-850/60 overflow-x-auto no-scrollbar flex items-center gap-3.5 py-1">
-          {stories.map((st) => (
-            <div key={st.id} className="flex flex-col items-center gap-1 shrink-0 cursor-pointer group">
-              <div className="w-14 h-14 rounded-full p-0.5 bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 group-hover:scale-105 transition-transform">
-                <div className="w-full h-full rounded-full overflow-hidden border-2 border-black relative">
-                  <img src={st.image} alt={st.label} className="w-full h-full object-cover" />
-                  <span className="absolute inset-0 bg-black/20 flex items-center justify-center text-sm">
-                    {st.icon}
-                  </span>
-                </div>
-              </div>
-              <span className="text-[10px] text-neutral-300 font-medium">{st.label}</span>
-            </div>
-          ))}
         </div>
       </div>
 

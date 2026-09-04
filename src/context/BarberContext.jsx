@@ -489,6 +489,10 @@ export function BarberProvider({ children }) {
     setFeedPosts(prev => prev.filter(p => p.id !== id));
   };
 
+  const updateFeedPost = (id, updatedFields) => {
+    setFeedPosts(prev => prev.map(p => p.id === id ? { ...p, ...updatedFields } : p));
+  };
+
   const toggleLikeFeedPost = (id) => {
     setFeedPosts(prev => prev.map(p => {
       if (p.id === id) {
@@ -611,6 +615,7 @@ export function BarberProvider({ children }) {
 
         feedPosts,
         addFeedPost,
+        updateFeedPost,
         deleteFeedPost,
         toggleLikeFeedPost,
         addCommentToFeedPost,

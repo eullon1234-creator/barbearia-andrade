@@ -199,7 +199,7 @@ export default function ImageCropperModal({
     };
   }, [generateCroppedBlob]);
 
-  // Confirma e envia
+  // Confirma e envia cortado
   const handleConfirm = async () => {
     try {
       const croppedBlob = await generateCroppedBlob();
@@ -207,6 +207,18 @@ export default function ImageCropperModal({
       await onCropConfirm(croppedFile);
     } catch (err) {
       alert('Erro ao processar o recorte: ' + err.message);
+    }
+  };
+
+  // Confirma e envia A IMAGEM INTEIRA ORIGINAL sem cortar
+  const handleConfirmOriginal = async () => {
+    try {
+      const res = await fetch(imageSrc);
+      const blob = await res.blob();
+      const fullFile = new File([blob], `full_${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' });
+      await onCropConfirm(fullFile);
+    } catch (err) {
+      alert('Erro ao processar a foto inteira: ' + err.message);
     }
   };
 
@@ -496,34 +508,47 @@ export default function ImageCropperModal({
         </div>
 
         {/* Rodapé com Botões de Ação */}
-        <div className="p-3.5 px-4 border-t border-dark-800 flex items-center justify-between gap-2 bg-dark-900">
+        <div className="p-3.5 px-4 border-t border-dark-800 flex flex-wrap items-center justify-between gap-2 bg-dark-900">
           <button
             type="button"
             onClick={onClose}
             disabled={isUploading}
-            className="px-4 py-2 rounded-xl bg-dark-800 hover:bg-dark-750 text-neutral-300 text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+            className="px-3.5 py-2 rounded-xl bg-dark-800 hover:bg-dark-750 text-neutral-300 text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
           >
             Cancelar
           </button>
 
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={isUploading}
-            className="px-5 py-2 rounded-xl theme-gradient-accent text-dark-950 text-xs font-black flex items-center gap-1.5 shadow-md hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
-          >
-            {isUploading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin stroke-[3]" />
-                <span>Enviando para Cloudinary...</span>
-              </>
-            ) : (
-              <>
-                <Check className="w-4 h-4 stroke-[3]" />
-                <span>Cortar & Salvar Foto</span>
-              </>
-            )}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleConfirmOriginal}
+              disabled={isUploading}
+              className="px-3.5 py-2 rounded-xl bg-dark-850 hover:bg-dark-800 border border-dark-700 text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shadow-sm"
+              title="Usar foto original inteira sem cortar"
+            >
+              <Maximize2 className="w-3.5 h-3.5 theme-text-accent" />
+              <span>Usar Foto Inteira</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={isUploading}
+              className="px-4 py-2 rounded-xl theme-gradient-accent text-dark-950 text-xs font-black flex items-center gap-1.5 shadow-md hover:brightness-110 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin stroke-[3]" />
+                  <span>Enviando...</span>
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4 stroke-[3]" />
+                  <span>Cortar Foto</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
       </div>
