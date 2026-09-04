@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Calendar, Clock, CheckCircle2, Coffee, 
   Palmtree, DollarSign, Edit2, Trash2, Plus, 
   Phone, Scissors, Share2, Check, ExternalLink, 
   ShieldCheck, Sparkles, AlertCircle, Settings, 
-  Building2, X, RotateCcw, ChevronRight, User, Eye, EyeOff
+  Building2, X, RotateCcw, ChevronRight, User, Eye, EyeOff,
+  Upload, Camera, Loader2
 } from 'lucide-react';
 import { useBarber } from '../context/BarberContext';
+import { uploadImageToCloudinary } from '../services/cloudinary';
 
 export default function BarberDashboard({ onBackToClientView }) {
   const {
@@ -36,6 +38,44 @@ export default function BarberDashboard({ onBackToClientView }) {
 
   const [newSpecialtyText, setNewSpecialtyText] = useState('');
   const [newAmenityText, setNewAmenityText] = useState('');
+  const [isUploadingServiceImage, setIsUploadingServiceImage] = useState(false);
+  const [isUploadingProfileImage, setIsUploadingProfileImage] = useState(false);
+  const serviceFileInputRef = useRef(null);
+  const profileFileInputRef = useRef(null);
+
+  const handleServiceFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingServiceImage(true);
+      showToast('Enviando foto para o Cloudinary...');
+      const imageUrl = await uploadImageToCloudinary(file);
+      setServiceForm(prev => ({ ...prev, image: imageUrl }));
+      showToast('Foto do corte enviada com sucesso!');
+    } catch (err) {
+      alert('Erro ao enviar imagem: ' + (err.message || 'Erro no upload'));
+    } finally {
+      setIsUploadingServiceImage(false);
+    }
+  };
+
+  const handleProfileFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingProfileImage(true);
+      showToast('Enviando sua foto para o Cloudinary...');
+      const imageUrl = await uploadImageToCloudinary(file);
+      updateProfile({ image: imageUrl });
+      showToast('Foto de perfil atualizada com sucesso!');
+    } catch (err) {
+      alert('Erro ao enviar imagem: ' + (err.message || 'Erro no upload'));
+    } finally {
+      setIsUploadingProfileImage(false);
+    }
+  };
 
   const showToast = (msg) => {
     setNotificationMessage(msg);
@@ -709,6 +749,58 @@ export default function BarberDashboard({ onBackToClientView }) {
               <span>Dados do Barbeiro</span>
             </h4>
 
+            {/* Upload da Foto de Perfil via Cloudinary */}
+            <div className="flex items-center gap-3.5 p-3 rounded-xl bg-dark-850 border border-dark-750">
+              <div className="relative">
+                <img
+                  src={profile.image}
+                  alt={profile.owner}
+                  className="w-16 h-16 rounded-full object-cover border-2 border-gold-500 shadow-gold-glow-sm"
+                />
+                <button
+                  type="button"
+                  disabled={isUploadingProfileImage}
+                  onClick={() => profileFileInputRef.current?.click()}
+                  className="absolute bottom-0 right-0 p-1.5 rounded-full bg-gold-500 text-dark-950 hover:bg-gold-400 transition-all shadow-md cursor-pointer"
+                  title="Trocar foto pelo Cloudinary"
+                >
+                  {isUploadingProfileImage ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5 stroke-[2.5]" />}
+                </button>
+              </div>
+
+              <div className="flex-1">
+                <p className="text-xs font-bold text-white">Sua Foto de Perfil</p>
+                <p className="text-[10px] text-neutral-400 mt-0.5">
+                  Foto exibida nos cards para os clientes.
+                </p>
+                <input
+                  ref={profileFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleProfileFileUpload}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  disabled={isUploadingProfileImage}
+                  onClick={() => profileFileInputRef.current?.click()}
+                  className="mt-2 px-3 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-750 text-gold-400 border border-gold-500/30 text-[11px] font-bold flex items-center gap-1.5 cursor-pointer"
+                >
+                  {isUploadingProfileImage ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <span>Enviando para nuvem...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-3 h-3" />
+                      <span>Carregar da Galeria/Câmera</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
             <div className="space-y-2.5 text-xs">
               <div>
                 <label className="text-[10px] uppercase font-bold text-neutral-400 block mb-1">
@@ -1074,16 +1166,69 @@ export default function BarberDashboard({ onBackToClientView }) {
               </div>
 
               <div>
-                <label className="block text-[10px] uppercase font-bold text-neutral-300 mb-1">
-                  URL da Foto (opcional):
+                <label className="block text-[10px] uppercase font-bold text-neutral-300 mb-1.5">
+                  Foto do Corte / Pacote:
                 </label>
-                <input
-                  type="url"
-                  placeholder="https://..."
-                  value={serviceForm.image}
-                  onChange={(e) => setServiceForm({ ...serviceForm, image: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-dark-850 border border-dark-700 text-neutral-300 text-xs"
-                />
+
+                <div className="p-3 rounded-2xl bg-dark-850 border border-dark-750 space-y-2.5">
+                  <div className="flex items-center gap-3">
+                    {serviceForm.image ? (
+                      <img
+                        src={serviceForm.image}
+                        alt="Preview"
+                        className="w-16 h-16 rounded-xl object-cover border border-gold-500/50 shadow-md"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-xl bg-dark-900 border border-dark-700 flex items-center justify-center text-neutral-500">
+                        <Scissors className="w-6 h-6" />
+                      </div>
+                    )}
+
+                    <div className="flex-1">
+                      <input
+                        ref={serviceFileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleServiceFileUpload}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        disabled={isUploadingServiceImage}
+                        onClick={() => serviceFileInputRef.current?.click()}
+                        className="w-full py-2 px-3 rounded-xl bg-gold-500 hover:bg-gold-400 text-dark-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-gold-glow-sm cursor-pointer"
+                      >
+                        {isUploadingServiceImage ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Enviando para Cloudinary...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Camera className="w-3.5 h-3.5" />
+                            <span>Escolher da Galeria / Câmera</span>
+                          </>
+                        )}
+                      </button>
+                      <span className="text-[10px] text-neutral-400 block mt-1 text-center">
+                        Upload automático na nuvem Cloudinary
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-dark-800">
+                    <span className="text-[9px] uppercase font-bold text-neutral-500 block mb-0.5">
+                      Ou cole o link direto da imagem:
+                    </span>
+                    <input
+                      type="url"
+                      placeholder="https://res.cloudinary.com/..."
+                      value={serviceForm.image}
+                      onChange={(e) => setServiceForm({ ...serviceForm, image: e.target.value })}
+                      className="w-full p-2 rounded-lg bg-dark-950 border border-dark-700 text-neutral-300 text-[11px]"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="pt-3 border-t border-dark-800 flex gap-2">
