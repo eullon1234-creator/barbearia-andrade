@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { MapPin, Navigation, Clock, ExternalLink, Copy, Check } from 'lucide-react';
 import { useBarber } from '../context/BarberContext';
+import { getMapEmbedUrl } from '../utils/mapUtils';
 
 export default function LocationSection() {
   const { profile, scheduleConfig } = useBarber();
@@ -9,8 +10,11 @@ export default function LocationSection() {
   const displayAddress = profile.address || 'Rua Principal, Povoado Cigana, Tuntum - MA';
   const displayCityState = profile.cityState || (profile.address ? profile.address.split(',').slice(-2).join(', ').trim() : 'Povoado Cigana, Tuntum - MA');
   
-  const finalMapsUrl = profile.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(displayAddress + ' ' + (profile.name || ''))}`;
-  const mapEmbedQuery = encodeURIComponent(displayAddress);
+  const finalMapsUrl = (profile.lat && profile.lng)
+    ? `https://www.google.com/maps?q=${profile.lat},${profile.lng}`
+    : profile.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(displayAddress + ' ' + (profile.name || ''))}`;
+  
+  const embedUrl = getMapEmbedUrl(profile);
 
   const handleCopyAddress = () => {
     navigator.clipboard.writeText(displayAddress).then(() => {
@@ -77,8 +81,8 @@ export default function LocationSection() {
               frameBorder="0"
               scrolling="no"
               marginHeight="0"
-              marginWidth="0"
-              src={`https://maps.google.com/maps?q=${mapEmbedQuery}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+              key={embedUrl}
+              src={embedUrl}
               className="w-full h-full filter contrast-125 opacity-90 group-hover:opacity-100 transition-opacity"
               loading="lazy"
             />

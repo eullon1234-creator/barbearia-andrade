@@ -11,6 +11,7 @@ import {
 import { useBarber, THEME_PRESETS } from '../context/BarberContext';
 import { uploadImageToCloudinary } from '../services/cloudinary';
 import BarberAnalytics from './BarberAnalytics';
+import { getMapEmbedUrl } from '../utils/mapUtils';
 
 export default function BarberDashboard({ onBackToClientView }) {
   const {
@@ -178,61 +179,103 @@ export default function BarberDashboard({ onBackToClientView }) {
 
   const handleGetDeviceLocation = () => {
     if (!navigator.geolocation) {
-      alert('Seu navegador não suporta geolocalização por GPS.');
+      alert('Seu navegador não possui suporte a geolocalização por GPS.');
       return;
     }
 
     setIsGettingLocation(true);
-    showToast('Obtendo coordenadas do GPS do seu aparelho...');
+    showToast('Acessando o GPS do celular...');
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        const { latitude, longitude } = pos.coords;
+        const latitude = pos.coords.latitude;
+        const longitude = pos.coords.longitude;
         const generatedMapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
 
-        let detectedAddress = '';
+        let detectedStreet = '';
+        let detectedNeighborhood = '';
         let detectedCity = '';
+        let detectedState = '';
 
+        // 1. Tenta BigDataCloud (otimizado para browsers móveis sem bloqueio de CORS)
         try {
-          const resp = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
-            { headers: { 'Accept-Language': 'pt-BR' } }
+          const bdcResp = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=pt`
           );
-          if (resp.ok) {
-            const data = await resp.json();
-            if (data && data.address) {
-              const road = data.address.road || data.address.street || '';
-              const houseNum = data.address.house_number ? `, nº ${data.address.house_number}` : '';
-              const suburb = data.address.suburb || data.address.neighbourhood || data.address.village || '';
-              const city = data.address.city || data.address.town || data.address.municipality || 'Tuntum';
-              const state = data.address.state ? ` - ${data.address.state}` : '';
+          if (bdcResp.ok) {
+            const bdcData = await bdcResp.json();
+            if (bdcData) {
+              detectedCity = bdcData.locality || bdcData.city || '';
+              detectedState = bdcData.principalSubdivisionCode ? bdcData.principalSubdivisionCode.replace('BR-', '') : (bdcData.principalSubdivision || '');
               
-              if (road) {
-                detectedAddress = `${road}${houseNum}${suburb ? ', ' + suburb : ''}, ${city}${state}`;
-              }
-              if (city) {
-                detectedCity = `${suburb ? suburb + ', ' : ''}${city}${state}`;
+              if (bdcData.localityInfo && Array.isArray(bdcData.localityInfo.administrative)) {
+                const sub = bdcData.localityInfo.administrative.find(a => a.adminLevel === 8 || a.adminLevel === 7 || a.description?.includes('bairro'));
+                if (sub && sub.name && sub.name !== detectedCity) {
+                  detectedNeighborhood = sub.name;
+                }
               }
             }
           }
-        } catch (err) {
-          console.warn('Erro ao consultar endereço por GPS:', err);
+        } catch (e) {
+          console.warn('BigDataCloud geocode:', e);
         }
 
+        // 2. Tenta Nominatim para complementar com rua e número
+        try {
+          const osmResp = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+            { headers: { 'Accept-Language': 'pt-BR' } }
+          );
+          if (osmResp.ok) {
+            const osmData = await osmResp.json();
+            if (osmData && osmData.address) {
+              const road = osmData.address.road || osmData.address.street || osmData.address.pedestrian || '';
+              const num = osmData.address.house_number ? `, nº ${osmData.address.house_number}` : '';
+              const neigh = osmData.address.suburb || osmData.address.neighbourhood || osmData.address.village || detectedNeighborhood;
+              const city = osmData.address.city || osmData.address.town || osmData.address.municipality || detectedCity;
+              const state = osmData.address.state ? osmData.address.state : detectedState;
+
+              if (road) detectedStreet = `${road}${num}`;
+              if (neigh) detectedNeighborhood = neigh;
+              if (city) detectedCity = city;
+              if (state) detectedState = state;
+            }
+          }
+        } catch (e) {
+          console.warn('Nominatim geocode:', e);
+        }
+
+        // Monta os textos finais de endereço e cidade
+        const finalAddress = detectedStreet 
+          ? (detectedNeighborhood ? `${detectedStreet}, ${detectedNeighborhood}` : detectedStreet)
+          : (detectedNeighborhood ? `Bairro ${detectedNeighborhood}` : `Localização GPS (${latitude.toFixed(5)}, ${longitude.toFixed(5)})`);
+        
+        const finalCityState = [detectedCity, detectedState].filter(Boolean).join(' - ') || 'Localização Atual';
+
         updateProfile({
+          lat: latitude,
+          lng: longitude,
           mapsUrl: generatedMapsUrl,
-          ...(detectedAddress ? { address: detectedAddress } : {}),
-          ...(detectedCity ? { cityState: detectedCity } : {}),
+          address: finalAddress,
+          cityState: finalCityState,
         });
 
         setIsGettingLocation(false);
-        showToast('Localização e link do Google Maps obtidos com sucesso!');
+        showToast(`GPS capturado! Local: ${finalCityState}`);
       },
       (err) => {
         setIsGettingLocation(false);
-        alert('Não foi possível obter o GPS. Permita o acesso à localização nas configurações do seu navegador.');
+        let errorMsg = 'Não foi possível obter o GPS.';
+        if (err.code === 1) {
+          errorMsg = 'Permissão de localização negada. Ative a permissão de GPS no seu navegador ou configurações do celular.';
+        } else if (err.code === 2) {
+          errorMsg = 'Sinal de GPS indisponível no momento. Tente novamente.';
+        } else if (err.code === 3) {
+          errorMsg = 'Tempo limite esgotado ao buscar GPS. Tente novamente.';
+        }
+        alert(errorMsg);
       },
-      { enableHighAccuracy: true, timeout: 12000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   };
 
@@ -243,7 +286,11 @@ export default function BarberDashboard({ onBackToClientView }) {
       return;
     }
     const generated = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullQuery)}`;
-    updateProfile({ mapsUrl: generated });
+    updateProfile({
+      lat: null,
+      lng: null,
+      mapsUrl: generated
+    });
     showToast('Link do Google Maps gerado com sucesso!');
   };
 
@@ -1368,11 +1415,20 @@ export default function BarberDashboard({ onBackToClientView }) {
 
                 {/* Pré-visualização do Mapa ao Vivo */}
                 <div className="pt-2 border-t border-dark-800">
-                  <span className="text-[10px] uppercase font-bold text-neutral-400 block mb-1.5">
-                    Pré-visualização do Mapa no App:
-                  </span>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] uppercase font-bold text-neutral-400">
+                      Pré-visualização do Mapa no App:
+                    </span>
+                    {profile.lat && profile.lng && (
+                      <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <span>GPS Ativo ({Number(profile.lat).toFixed(3)}, {Number(profile.lng).toFixed(3)})</span>
+                      </span>
+                    )}
+                  </div>
                   <div className="w-full h-36 rounded-xl overflow-hidden border border-dark-700/70 relative bg-dark-950">
                     <iframe
+                      key={getMapEmbedUrl(profile)}
                       title="Pré-visualização do mapa da barbearia"
                       width="100%"
                       height="100%"
@@ -1380,7 +1436,7 @@ export default function BarberDashboard({ onBackToClientView }) {
                       scrolling="no"
                       marginHeight="0"
                       marginWidth="0"
-                      src={`https://maps.google.com/maps?q=${encodeURIComponent(profile.address || profile.cityState || 'Tuntum MA')}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                      src={getMapEmbedUrl(profile)}
                       className="w-full h-full filter contrast-125 opacity-85"
                       loading="lazy"
                     />

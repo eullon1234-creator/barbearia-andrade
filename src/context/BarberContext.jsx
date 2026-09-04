@@ -173,6 +173,8 @@ export function BarberProvider({ children }) {
     instagram: BARBERSHOP_DATA.instagram,
     address: BARBERSHOP_DATA.address,
     cityState: BARBERSHOP_DATA.cityState || "Povoado Cigana, Tuntum - MA",
+    lat: null,
+    lng: null,
     mapsUrl: BARBERSHOP_DATA.mapsUrl,
     bio: "Atendimento exclusivo com Saymon Andrade. O melhor degradê e terapia de barba da região.",
     image: BARBERSHOP_DATA.images.barber,
