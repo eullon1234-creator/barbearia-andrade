@@ -7,7 +7,7 @@ import confetti from 'canvas-confetti';
 import { useBarber } from '../context/BarberContext';
 
 export default function BookingModal({ isOpen, onClose, initialService }) {
-  const { services, profile, scheduleConfig, appointments } = useBarber();
+  const { services, profile, scheduleConfig, appointments, addAppointment } = useBarber();
 
   const [step, setStep] = useState(1);
   const [selectedService, setSelectedService] = useState(initialService || (services.length > 0 ? services[0] : null));
@@ -150,6 +150,19 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
 
   const handleConfirmWhatsApp = () => {
     const formattedDate = selectedDate.split('-').reverse().join('/');
+    
+    // Registra no banco de agendamentos para alimentar o painel e faturamento
+    addAppointment({
+      client: clientName,
+      phone: clientPhone,
+      service: selectedService ? selectedService.name : 'Corte Masculino',
+      date: selectedDate,
+      time: selectedTime,
+      price: selectedService ? selectedService.price : 30,
+      payment: paymentMethod,
+      status: 'Confirmado',
+    });
+
     const message = `Olá Saymon! Gostaria de confirmar meu agendamento na Barbearia Andrade:\n\n` +
       `💈 *Serviço:* ${selectedService ? selectedService.name : 'Corte'}\n` +
       `👤 *Profissional:* ${profile.owner}\n` +

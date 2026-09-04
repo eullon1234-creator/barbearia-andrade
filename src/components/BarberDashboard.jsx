@@ -5,10 +5,12 @@ import {
   Phone, Scissors, Share2, Check, ExternalLink, 
   ShieldCheck, Sparkles, AlertCircle, Settings, 
   Building2, X, RotateCcw, ChevronRight, User, Eye, EyeOff,
-  Upload, Camera, Loader2, Palette, Image as ImageIcon, Download
+  Upload, Camera, Loader2, Palette, Image as ImageIcon, Download,
+  BarChart3, TrendingUp
 } from 'lucide-react';
 import { useBarber, THEME_PRESETS } from '../context/BarberContext';
 import { uploadImageToCloudinary } from '../services/cloudinary';
+import BarberAnalytics from './BarberAnalytics';
 
 export default function BarberDashboard({ onBackToClientView }) {
   const {
@@ -22,7 +24,7 @@ export default function BarberDashboard({ onBackToClientView }) {
     exportConfiguration, importConfiguration, resetToFactoryDefaults
   } = useBarber();
 
-  const [activeSubTab, setActiveSubTab] = useState('agenda'); // 'agenda' | 'servicos' | 'temas' | 'horarios' | 'perfil'
+  const [activeSubTab, setActiveSubTab] = useState('dashboard'); // 'dashboard' | 'agenda' | 'servicos' | 'temas' | 'horarios' | 'perfil'
   const [copiedLink, setCopiedLink] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
 
@@ -345,12 +347,22 @@ export default function BarberDashboard({ onBackToClientView }) {
         </div>
       </div>
 
-      {/* Navegação entre as 5 Abas do Painel */}
-      <div className="grid grid-cols-5 gap-1 p-1 rounded-xl bg-dark-900 border border-dark-800 text-[11px] font-bold">
+      {/* Navegação entre as 6 Abas do Painel */}
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 p-1.5 rounded-2xl bg-dark-900 border border-dark-800 text-[11px] font-bold">
+        <button
+          onClick={() => setActiveSubTab('dashboard')}
+          className={`py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+            activeSubTab === 'dashboard' ? 'theme-gradient-accent text-dark-950 font-black shadow-md' : 'text-neutral-400 hover:text-white hover:bg-dark-800/60'
+          }`}
+        >
+          <BarChart3 className="w-3.5 h-3.5" />
+          <span>Métricas</span>
+        </button>
+
         <button
           onClick={() => setActiveSubTab('agenda')}
-          className={`py-2 px-0.5 rounded-lg flex flex-col items-center justify-center gap-1 transition-all ${
-            activeSubTab === 'agenda' ? 'theme-gradient-accent text-dark-950 font-black shadow-sm' : 'text-neutral-400 hover:text-white'
+          className={`py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+            activeSubTab === 'agenda' ? 'theme-gradient-accent text-dark-950 font-black shadow-md' : 'text-neutral-400 hover:text-white hover:bg-dark-800/60'
           }`}
         >
           <Calendar className="w-3.5 h-3.5" />
@@ -359,8 +371,8 @@ export default function BarberDashboard({ onBackToClientView }) {
 
         <button
           onClick={() => setActiveSubTab('servicos')}
-          className={`py-2 px-0.5 rounded-lg flex flex-col items-center justify-center gap-1 transition-all ${
-            activeSubTab === 'servicos' ? 'theme-gradient-accent text-dark-950 font-black shadow-sm' : 'text-neutral-400 hover:text-white'
+          className={`py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+            activeSubTab === 'servicos' ? 'theme-gradient-accent text-dark-950 font-black shadow-md' : 'text-neutral-400 hover:text-white hover:bg-dark-800/60'
           }`}
         >
           <Scissors className="w-3.5 h-3.5" />
@@ -369,8 +381,8 @@ export default function BarberDashboard({ onBackToClientView }) {
 
         <button
           onClick={() => setActiveSubTab('temas')}
-          className={`py-2 px-0.5 rounded-lg flex flex-col items-center justify-center gap-1 transition-all ${
-            activeSubTab === 'temas' ? 'theme-gradient-accent text-dark-950 font-black shadow-sm' : 'text-neutral-400 hover:text-white'
+          className={`py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+            activeSubTab === 'temas' ? 'theme-gradient-accent text-dark-950 font-black shadow-md' : 'text-neutral-400 hover:text-white hover:bg-dark-800/60'
           }`}
         >
           <Palette className="w-3.5 h-3.5" />
@@ -379,8 +391,8 @@ export default function BarberDashboard({ onBackToClientView }) {
 
         <button
           onClick={() => setActiveSubTab('horarios')}
-          className={`py-2 px-0.5 rounded-lg flex flex-col items-center justify-center gap-1 transition-all ${
-            activeSubTab === 'horarios' ? 'theme-gradient-accent text-dark-950 font-black shadow-sm' : 'text-neutral-400 hover:text-white'
+          className={`py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+            activeSubTab === 'horarios' ? 'theme-gradient-accent text-dark-950 font-black shadow-md' : 'text-neutral-400 hover:text-white hover:bg-dark-800/60'
           }`}
         >
           <Clock className="w-3.5 h-3.5" />
@@ -389,14 +401,21 @@ export default function BarberDashboard({ onBackToClientView }) {
 
         <button
           onClick={() => setActiveSubTab('perfil')}
-          className={`py-2 px-0.5 rounded-lg flex flex-col items-center justify-center gap-1 transition-all ${
-            activeSubTab === 'perfil' ? 'theme-gradient-accent text-dark-950 font-black shadow-sm' : 'text-neutral-400 hover:text-white'
+          className={`py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+            activeSubTab === 'perfil' ? 'theme-gradient-accent text-dark-950 font-black shadow-md' : 'text-neutral-400 hover:text-white hover:bg-dark-800/60'
           }`}
         >
           <Building2 className="w-3.5 h-3.5" />
           <span>Barbearia</span>
         </button>
       </div>
+
+      {/* =========================================================================
+          ABA 0: DASHBOARD FINANCEIRO & ANALYTICS
+      ========================================================================= */}
+      {activeSubTab === 'dashboard' && (
+        <BarberAnalytics />
+      )}
 
       {/* =========================================================================
           ABA 1: AGENDA DE ATENDIMENTOS DO DIA
