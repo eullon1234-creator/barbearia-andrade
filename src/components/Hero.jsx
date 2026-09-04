@@ -103,7 +103,7 @@ export default function Hero({ onOpenBooking }) {
         </a>
 
         <a
-          href={profile.mapsUrl}
+          href={profile.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((profile.address || '') + ' ' + (profile.cityState || ''))}`}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-1.5 p-2.5 rounded-xl bg-dark-850 hover:bg-dark-800 border border-dark-700/80 hover:border-amber-500/40 text-neutral-300 hover:text-amber-400 transition-all text-xs font-medium"

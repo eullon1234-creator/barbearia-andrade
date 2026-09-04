@@ -6,7 +6,7 @@ import {
   ShieldCheck, Sparkles, AlertCircle, Settings, 
   Building2, X, RotateCcw, ChevronRight, User, Eye, EyeOff,
   Upload, Camera, Loader2, Palette, Image as ImageIcon, Download,
-  BarChart3, TrendingUp
+  BarChart3, TrendingUp, MapPin, Navigation, LocateFixed, Search
 } from 'lucide-react';
 import { useBarber, THEME_PRESETS } from '../context/BarberContext';
 import { uploadImageToCloudinary } from '../services/cloudinary';
@@ -172,6 +172,80 @@ export default function BarberDashboard({ onBackToClientView }) {
   // Cálculos financeiros
   const totalBilling = appointments.reduce((acc, curr) => acc + (parseFloat(curr.price) || 0), 0);
   const completedAppointments = appointments.filter(a => a.status === 'Concluído').length;
+
+  // Estado e Handlers de Localização & GPS
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+
+  const handleGetDeviceLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Seu navegador não suporta geolocalização por GPS.');
+      return;
+    }
+
+    setIsGettingLocation(true);
+    showToast('Obtendo coordenadas do GPS do seu aparelho...');
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const generatedMapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+
+        let detectedAddress = '';
+        let detectedCity = '';
+
+        try {
+          const resp = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+            { headers: { 'Accept-Language': 'pt-BR' } }
+          );
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data && data.address) {
+              const road = data.address.road || data.address.street || '';
+              const houseNum = data.address.house_number ? `, nº ${data.address.house_number}` : '';
+              const suburb = data.address.suburb || data.address.neighbourhood || data.address.village || '';
+              const city = data.address.city || data.address.town || data.address.municipality || 'Tuntum';
+              const state = data.address.state ? ` - ${data.address.state}` : '';
+              
+              if (road) {
+                detectedAddress = `${road}${houseNum}${suburb ? ', ' + suburb : ''}, ${city}${state}`;
+              }
+              if (city) {
+                detectedCity = `${suburb ? suburb + ', ' : ''}${city}${state}`;
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('Erro ao consultar endereço por GPS:', err);
+        }
+
+        updateProfile({
+          mapsUrl: generatedMapsUrl,
+          ...(detectedAddress ? { address: detectedAddress } : {}),
+          ...(detectedCity ? { cityState: detectedCity } : {}),
+        });
+
+        setIsGettingLocation(false);
+        showToast('Localização e link do Google Maps obtidos com sucesso!');
+      },
+      (err) => {
+        setIsGettingLocation(false);
+        alert('Não foi possível obter o GPS. Permita o acesso à localização nas configurações do seu navegador.');
+      },
+      { enableHighAccuracy: true, timeout: 12000 }
+    );
+  };
+
+  const handleGenerateMapsUrlFromAddress = () => {
+    const fullQuery = [profile.address, profile.cityState].filter(Boolean).join(', ');
+    if (!fullQuery.trim()) {
+      alert('Digite o endereço primeiro.');
+      return;
+    }
+    const generated = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullQuery)}`;
+    updateProfile({ mapsUrl: generated });
+    showToast('Link do Google Maps gerado com sucesso!');
+  };
 
   // Handlers de Serviços
   const handleOpenNewServiceModal = () => {
@@ -1192,16 +1266,126 @@ export default function BarberDashboard({ onBackToClientView }) {
                 </div>
               </div>
 
-              <div>
-                <label className="text-[10px] uppercase font-bold text-neutral-400 block mb-1">
-                  Endereço Completo:
-                </label>
-                <input
-                  type="text"
-                  value={profile.address}
-                  onChange={(e) => updateProfile({ address: e.target.value })}
-                  className="w-full p-2 rounded-xl bg-dark-850 border border-dark-700 text-white text-xs"
-                />
+              {/* Seção de Localização & Google Maps */}
+              <div className="p-3.5 rounded-xl bg-dark-900 border border-dark-750 space-y-3 mt-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg theme-bg-accent-subtle theme-text-accent">
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-white">Localização & Google Maps</h4>
+                      <p className="text-[10px] text-neutral-400">Onde os clientes encontrarão a barbearia</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-neutral-400 block mb-1">
+                      Endereço (Rua e Número):
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Rua Principal, 120"
+                      value={profile.address || ''}
+                      onChange={(e) => updateProfile({ address: e.target.value })}
+                      className="w-full p-2 rounded-xl bg-dark-850 border border-dark-700 text-white text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-neutral-400 block mb-1">
+                      Bairro, Cidade / Referência:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Povoado Cigana, Tuntum - MA"
+                      value={profile.cityState || ''}
+                      onChange={(e) => updateProfile({ cityState: e.target.value })}
+                      className="w-full p-2 rounded-xl bg-dark-850 border border-dark-700 text-white text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-neutral-400 block mb-1">
+                    Link do Google Maps (Rota):
+                  </label>
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      placeholder="https://maps.app.goo.gl/... ou gerado automaticamente"
+                      value={profile.mapsUrl || ''}
+                      onChange={(e) => updateProfile({ mapsUrl: e.target.value })}
+                      className="flex-1 p-2 rounded-xl bg-dark-850 border border-dark-700 text-white text-xs font-mono text-[11px]"
+                    />
+                    {profile.mapsUrl && (
+                      <a
+                        href={profile.mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-2 rounded-xl bg-dark-800 hover:bg-dark-750 text-neutral-300 hover:text-white border border-dark-700 flex items-center gap-1 text-xs"
+                        title="Testar rota no Google Maps"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Testar</span>
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                {/* Botões de Ação Rápida de Localização */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleGetDeviceLocation}
+                    disabled={isGettingLocation}
+                    className="py-2 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center gap-1.5 text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {isGettingLocation ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Capturando GPS...</span>
+                      </>
+                    ) : (
+                      <>
+                        <LocateFixed className="w-3.5 h-3.5" />
+                        <span>Usar GPS Atual do Celular</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleGenerateMapsUrlFromAddress}
+                    className="py-2 px-3 rounded-xl bg-dark-800 hover:bg-dark-750 theme-text-accent border border-dark-700 flex items-center justify-center gap-1.5 text-xs font-bold transition-all cursor-pointer"
+                  >
+                    <Search className="w-3.5 h-3.5" />
+                    <span>Gerar Link pelo Endereço</span>
+                  </button>
+                </div>
+
+                {/* Pré-visualização do Mapa ao Vivo */}
+                <div className="pt-2 border-t border-dark-800">
+                  <span className="text-[10px] uppercase font-bold text-neutral-400 block mb-1.5">
+                    Pré-visualização do Mapa no App:
+                  </span>
+                  <div className="w-full h-36 rounded-xl overflow-hidden border border-dark-700/70 relative bg-dark-950">
+                    <iframe
+                      title="Pré-visualização do mapa da barbearia"
+                      width="100%"
+                      height="100%"
+                      frameBorder="0"
+                      scrolling="no"
+                      marginHeight="0"
+                      marginWidth="0"
+                      src={`https://maps.google.com/maps?q=${encodeURIComponent(profile.address || profile.cityState || 'Tuntum MA')}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                      className="w-full h-full filter contrast-125 opacity-85"
+                      loading="lazy"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div>

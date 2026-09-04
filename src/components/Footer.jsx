@@ -59,7 +59,7 @@ export default function Footer({ onOpenBooking }) {
           </a>
 
           <a
-            href={profile.mapsUrl}
+            href={profile.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((profile.address || '') + ' ' + (profile.cityState || ''))}`}
             target="_blank"
             rel="noopener noreferrer"
             className="w-9 h-9 rounded-full bg-dark-850 hover:bg-dark-800 border border-dark-750 flex items-center justify-center theme-text-accent hover:scale-110 transition-all"

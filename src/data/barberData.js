@@ -8,6 +8,7 @@ export const BARBERSHOP_DATA = {
   instagram: "saymon_andradeee",
   instagramUrl: "https://instagram.com/saymon_andradeee",
   address: "Rua Principal, Povoado Cigana, Tuntum - MA",
+  cityState: "Povoado Cigana, Tuntum - MA",
   mapsUrl: "https://www.google.com/maps/search/?api=1&query=Povoado+Cigana+Rua+Principal+Tuntum+MA",
   rating: 4.9,
   reviewsCount: 142,
