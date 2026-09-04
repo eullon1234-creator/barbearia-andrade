@@ -7,7 +7,7 @@ import {
   Building2, X, RotateCcw, ChevronRight, User, Eye, EyeOff,
   Upload, Camera, Loader2, Palette, Image as ImageIcon, Download,
   BarChart3, TrendingUp, MapPin, Navigation, LocateFixed, Search,
-  Heart, MessageCircle
+  Heart, MessageCircle, QrCode
 } from 'lucide-react';
 import { useBarber, THEME_PRESETS } from '../context/BarberContext';
 import { uploadImageToCloudinary } from '../services/cloudinary';
@@ -1679,6 +1679,82 @@ export default function BarberDashboard({ onBackToClientView }) {
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Seção de Configuração do Pix (QR Code & Copia e Cola) */}
+              <div className="p-3.5 rounded-xl bg-dark-900 border border-dark-750 space-y-3 mt-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg theme-bg-accent-subtle theme-text-accent">
+                      <QrCode className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-white">Chave Pix para Pagamentos</h4>
+                      <p className="text-[10px] text-neutral-400">Exibida com QR Code para os clientes no agendamento</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-neutral-400 block mb-1">
+                      Tipo de Chave:
+                    </label>
+                    <select
+                      value={profile.pixKeyType || 'Celular'}
+                      onChange={(e) => updateProfile({ pixKeyType: e.target.value })}
+                      className="w-full p-2 rounded-xl bg-dark-850 border border-dark-700 text-white text-xs"
+                    >
+                      <option value="Celular">Celular</option>
+                      <option value="CPF">CPF</option>
+                      <option value="CNPJ">CNPJ</option>
+                      <option value="E-mail">E-mail</option>
+                      <option value="Chave Aleatória">Chave Aleatória</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-neutral-400 block mb-1">
+                      Chave Pix:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: 99991220211"
+                      value={profile.pixKey || ''}
+                      onChange={(e) => updateProfile({ pixKey: e.target.value })}
+                      className="w-full p-2 rounded-xl bg-dark-850 border border-dark-700 text-white text-xs font-mono font-bold text-gold-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-neutral-400 block mb-1">
+                      Nome do Favorecido:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Saymon Andrade"
+                      value={profile.pixReceiver || ''}
+                      onChange={(e) => updateProfile({ pixReceiver: e.target.value })}
+                      className="w-full p-2 rounded-xl bg-dark-850 border border-dark-700 text-white text-xs"
+                    />
+                  </div>
+                </div>
+
+                {profile.pixKey && (
+                  <div className="pt-2 border-t border-dark-800 flex items-center gap-3">
+                    <div className="bg-white p-1 rounded-lg shrink-0">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=64x64&data=${encodeURIComponent(profile.pixKey)}`}
+                        alt="QR Code Preview"
+                        className="w-10 h-10 object-contain rounded"
+                      />
+                    </div>
+                    <div className="text-[11px] text-neutral-300">
+                      <span className="font-bold text-emerald-400 block">QR Code Ativo e Funcionando</span>
+                      <span className="text-neutral-400 text-[10px]">O cliente pode escanear com a câmera ou copiar a chave Pix com 1 toque.</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>

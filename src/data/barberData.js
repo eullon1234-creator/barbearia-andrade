@@ -37,6 +37,15 @@ export const BARBERSHOP_DATA = {
     { id: 'parking', label: 'Estacionamento Fácil', icon: 'Car' },
   ],
 
+  // Serviços Adicionais (Upsell no Agendamento)
+  extras: [
+    { id: 'extra-sobrancelha', name: 'Sobrancelha na Navalha', price: 10.00, durationMinutes: 10, icon: '✂️', description: 'Design e alinhamento na lâmina' },
+    { id: 'extra-toalha-quente', name: 'Terapia de Toalha Quente / Ozônio', price: 15.00, durationMinutes: 15, icon: '🧖‍♂️', description: 'Abertura de poros e relaxamento' },
+    { id: 'extra-lavagem', name: 'Lavagem Especial + Pomada', price: 10.00, durationMinutes: 10, icon: '🧼', description: 'Shampoo refrescante e finalização' },
+    { id: 'extra-barba', name: 'Alinhamento de Barba Rápido', price: 20.00, durationMinutes: 15, icon: '🧔', description: 'Desenho rápido da linha da barba' },
+    { id: 'extra-pigmentacao', name: 'Pigmentação / Disfarce Extra', price: 15.00, durationMinutes: 15, icon: '🎨', description: 'Realce e camuflagem de falhas' },
+  ],
+
   // Catálogo de Serviços com Valores e Imagens
   services: [
     {

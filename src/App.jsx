@@ -14,6 +14,7 @@ import PwaInstallBanner from './components/PwaInstallBanner';
 import FeedInstagramLookbook from './components/FeedInstagramLookbook';
 import InstagramFeedView from './components/InstagramFeedView';
 import ReviewsSection from './components/ReviewsSection';
+import ClientActiveBookingBanner from './components/ClientActiveBookingBanner';
 import { Smartphone, Monitor } from 'lucide-react';
 
 export default function App() {
@@ -149,6 +150,9 @@ export default function App() {
                 clientTab={clientTab}
                 onSelectTab={setClientTab}
               />
+
+              {/* Banner de Agendamento Ativo do Cliente */}
+              <ClientActiveBookingBanner onOpenBookingModal={handleOpenBooking} />
 
               {/* Banner de Instalação PWA */}
               <PwaInstallBanner />

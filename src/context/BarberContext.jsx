@@ -12,6 +12,7 @@ const STORAGE_KEYS = {
   THEME: 'andrade_theme_v2',
   GALLERY: 'andrade_gallery_v2',
   FEED_POSTS: 'andrade_feed_posts_v1',
+  EXTRAS: 'andrade_extras_v1',
 };
 
 // Paletas de cores pré-configuradas para qualquer estilo de barbearia
@@ -172,6 +173,9 @@ export function BarberProvider({ children }) {
     phone: BARBERSHOP_DATA.phone,
     whatsappNumber: BARBERSHOP_DATA.whatsappNumber,
     instagram: BARBERSHOP_DATA.instagram,
+    pixKey: '99991220211',
+    pixKeyType: 'Celular',
+    pixReceiver: 'Saymon Andrade',
     address: BARBERSHOP_DATA.address,
     cityState: BARBERSHOP_DATA.cityState || "Povoado Cigana, Tuntum - MA",
     lat: null,
@@ -344,6 +348,20 @@ export function BarberProvider({ children }) {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.FEED_POSTS, JSON.stringify(feedPosts));
   }, [feedPosts]);
+
+  // 9. Serviços Adicionais (Upsell)
+  const [extras, setExtras] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.EXTRAS);
+      return saved ? JSON.parse(saved) : (BARBERSHOP_DATA.extras || []);
+    } catch (e) {
+      return BARBERSHOP_DATA.extras || [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.EXTRAS, JSON.stringify(extras));
+  }, [extras]);
 
   // Ações de Serviços
   const addService = (newService) => {
@@ -619,6 +637,9 @@ export function BarberProvider({ children }) {
         deleteFeedPost,
         toggleLikeFeedPost,
         addCommentToFeedPost,
+
+        extras,
+        setExtras,
 
         exportConfiguration,
         importConfiguration,
