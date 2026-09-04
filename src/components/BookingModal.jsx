@@ -15,6 +15,7 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
   const [step, setStep] = useState(1);
   const [selectedService, setSelectedService] = useState(initialService || (services.length > 0 ? services[0] : null));
   const [isChangingService, setIsChangingService] = useState(false);
+  const [isTurbinarOpen, setIsTurbinarOpen] = useState(false);
   const [selectedExtras, setSelectedExtras] = useState([]);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
@@ -477,52 +478,81 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
                 )}
               </div>
 
-              {/* Adicionais Recomendados (Turbine seu corte) em Grade 2 Colunas */}
+              {/* Adicionais / Turbinar (Expansível / Dobrável sob demanda com botãozinho) */}
               {extras && extras.length > 0 && (
-                <div className="space-y-2">
+                <div className="p-3 rounded-2xl bg-dark-850 border border-dark-750 space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-neutral-300 uppercase tracking-wider flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-gold-400" />
-                      <span>Turbine seu Corte (Adicionais):</span>
-                    </label>
-                    <span className="text-[10px] text-gold-400/90 font-bold bg-gold-500/10 px-2 py-0.5 rounded-full border border-gold-500/20">
-                      Opcional
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-gold-500/15 border border-gold-500/30 text-gold-400 flex items-center justify-center">
+                        <Sparkles className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-white">Turbinar meu Corte</h4>
+                        <p className="text-[10px] text-neutral-400">
+                          {selectedExtras.length > 0 
+                            ? `${selectedExtras.length} adicional(is) adicionado(s)` 
+                            : 'Sobrancelha, barba, toalha quente...'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsTurbinarOpen(!isTurbinarOpen)}
+                      className="px-2.5 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-750 text-gold-400 border border-dark-700 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      <span>{isTurbinarOpen ? 'Fechar' : selectedExtras.length > 0 ? 'Editar Extras' : '+ Turbinar Corte'}</span>
+                      {isTurbinarOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                    </button>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {extras.map((extra) => {
-                      const isSelected = selectedExtras.some(e => e.id === extra.id);
-                      return (
-                        <div
-                          key={extra.id}
-                          onClick={() => toggleExtra(extra)}
-                          className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                            isSelected
-                              ? 'bg-gold-500/15 border-gold-500/80 text-white shadow-gold-glow-sm'
-                              : 'bg-dark-850/80 border-dark-750 text-neutral-300 hover:border-neutral-600'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <div className={`w-3.5 h-3.5 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
-                              isSelected ? 'border-gold-500 bg-gold-500' : 'border-neutral-500'
-                            }`}>
-                              {isSelected && <Check className="w-2.5 h-2.5 text-dark-950 stroke-[3]" />}
+                  {/* Badges dos adicionais ativos quando recolhido */}
+                  {!isTurbinarOpen && selectedExtras.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {selectedExtras.map(ex => (
+                        <span key={ex.id} className="text-[10px] font-semibold bg-gold-500/20 text-gold-300 px-2 py-0.5 rounded-full border border-gold-500/30">
+                          ✓ {ex.name} (+R$ {parseFloat(ex.price).toFixed(2).replace('.', ',')})
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Opções de Adicionais quando clica no botãozinho */}
+                  {isTurbinarOpen && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 animate-in fade-in duration-150">
+                      {extras.map((extra) => {
+                        const isSelected = selectedExtras.some(e => e.id === extra.id);
+                        return (
+                          <div
+                            key={extra.id}
+                            onClick={() => toggleExtra(extra)}
+                            className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                              isSelected
+                                ? 'bg-gold-500/15 border-gold-500/80 text-white shadow-gold-glow-sm'
+                                : 'bg-dark-900 border-dark-750 text-neutral-300 hover:border-neutral-600'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className={`w-3.5 h-3.5 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
+                                isSelected ? 'border-gold-500 bg-gold-500' : 'border-neutral-500'
+                              }`}>
+                                {isSelected && <Check className="w-2.5 h-2.5 text-dark-950 stroke-[3]" />}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-white leading-tight truncate">{extra.name}</p>
+                                <span className="text-[10px] text-neutral-400 flex items-center gap-1">
+                                  <Clock className="w-2.5 h-2.5 text-gold-400" /> +{extra.durationMinutes} min
+                                </span>
+                              </div>
                             </div>
-                            <div className="min-w-0">
-                              <p className="text-xs font-bold text-white leading-tight truncate">{extra.name}</p>
-                              <span className="text-[10px] text-neutral-400 flex items-center gap-1">
-                                <Clock className="w-2.5 h-2.5 text-gold-400" /> +{extra.durationMinutes} min
-                              </span>
-                            </div>
+                            <span className="text-xs font-black text-gold-400 shrink-0 ml-2">
+                              + R$ {parseFloat(extra.price).toFixed(2).replace('.', ',')}
+                            </span>
                           </div>
-                          <span className="text-xs font-black text-gold-400 shrink-0 ml-2">
-                            + R$ {parseFloat(extra.price).toFixed(2).replace('.', ',')}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 

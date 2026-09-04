@@ -168,12 +168,6 @@ export default function App() {
                 {/* Catálogo de Serviços */}
                 <ServicesSection onOpenBooking={handleOpenBooking} />
 
-                {/* Feed de Cortes Estilo Instagram */}
-                <FeedInstagramLookbook
-                  onOpenBooking={handleOpenBooking}
-                  onOpenFeedView={() => setClientTab('feed')}
-                />
-
                 {/* Avaliações & Depoimentos Reais */}
                 <ReviewsSection />
 
