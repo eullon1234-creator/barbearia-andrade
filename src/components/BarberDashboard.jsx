@@ -12,6 +12,7 @@ import { useBarber, THEME_PRESETS } from '../context/BarberContext';
 import { uploadImageToCloudinary } from '../services/cloudinary';
 import BarberAnalytics from './BarberAnalytics';
 import { getMapEmbedUrl } from '../utils/mapUtils';
+import ImageCropperModal from './ImageCropperModal';
 
 export default function BarberDashboard({ onBackToClientView }) {
   const {
@@ -43,6 +44,15 @@ export default function BarberDashboard({ onBackToClientView }) {
   const galleryFileInputRef = useRef(null);
   const jsonFileInputRef = useRef(null);
 
+  // Estado do Modal de Recorte e Ajuste de Fotos
+  const [cropperModal, setCropperModal] = useState({
+    isOpen: false,
+    imageSrc: null,
+    title: 'Ajustar & Recortar Foto',
+    cropType: 'service',
+    targetCallback: null,
+  });
+
   // Estados de formulários / modais
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [editingService, setEditingService] = useState(null);
@@ -73,85 +83,155 @@ export default function BarberDashboard({ onBackToClientView }) {
     });
   };
 
-  // Upload handlers
-  const handleServiceFileUpload = async (e) => {
+  // Handlers de Upload com Pré-recorte e Ajuste Interativo
+  const handleServiceFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    try {
-      setIsUploadingServiceImage(true);
-      showToast('Enviando foto do corte para o Cloudinary...');
-      const imageUrl = await uploadImageToCloudinary(file);
-      setServiceForm(prev => ({ ...prev, image: imageUrl }));
-      showToast('Foto do corte enviada com sucesso!');
-    } catch (err) {
-      alert('Erro ao enviar imagem: ' + (err.message || 'Erro no upload'));
-    } finally {
-      setIsUploadingServiceImage(false);
-    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setCropperModal({
+        isOpen: true,
+        imageSrc: ev.target.result,
+        title: 'Recortar Foto do Corte / Serviço',
+        cropType: 'service',
+        targetCallback: async (croppedFile) => {
+          try {
+            setIsUploadingServiceImage(true);
+            showToast('Enviando foto do corte para o Cloudinary...');
+            const imageUrl = await uploadImageToCloudinary(croppedFile);
+            setServiceForm(prev => ({ ...prev, image: imageUrl }));
+            showToast('Foto do corte salva com sucesso!');
+            setCropperModal(prev => ({ ...prev, isOpen: false }));
+          } catch (err) {
+            alert('Erro ao enviar imagem: ' + (err.message || 'Erro no upload'));
+          } finally {
+            setIsUploadingServiceImage(false);
+          }
+        }
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
-  const handleProfileFileUpload = async (e) => {
+  const handleProfileFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    try {
-      setIsUploadingProfileImage(true);
-      showToast('Enviando sua foto para o Cloudinary...');
-      const imageUrl = await uploadImageToCloudinary(file);
-      updateProfile({ image: imageUrl });
-      showToast('Foto de perfil atualizada com sucesso!');
-    } catch (err) {
-      alert('Erro ao enviar imagem: ' + (err.message || 'Erro no upload'));
-    } finally {
-      setIsUploadingProfileImage(false);
-    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setCropperModal({
+        isOpen: true,
+        imageSrc: ev.target.result,
+        title: 'Recortar Sua Foto de Perfil',
+        cropType: 'avatar',
+        targetCallback: async (croppedFile) => {
+          try {
+            setIsUploadingProfileImage(true);
+            showToast('Enviando foto de perfil para o Cloudinary...');
+            const imageUrl = await uploadImageToCloudinary(croppedFile);
+            updateProfile({ image: imageUrl });
+            showToast('Foto de perfil atualizada com sucesso!');
+            setCropperModal(prev => ({ ...prev, isOpen: false }));
+          } catch (err) {
+            alert('Erro ao enviar imagem: ' + (err.message || 'Erro no upload'));
+          } finally {
+            setIsUploadingProfileImage(false);
+          }
+        }
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
-  const handleCoverFileUpload = async (e) => {
+  const handleCoverFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    try {
-      setIsUploadingCoverImage(true);
-      showToast('Enviando foto de capa para o Cloudinary...');
-      const imageUrl = await uploadImageToCloudinary(file);
-      updateProfile({ coverImage: imageUrl });
-      showToast('Foto de capa atualizada com sucesso!');
-    } catch (err) {
-      alert('Erro ao enviar imagem: ' + (err.message || 'Erro no upload'));
-    } finally {
-      setIsUploadingCoverImage(false);
-    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setCropperModal({
+        isOpen: true,
+        imageSrc: ev.target.result,
+        title: 'Recortar Foto de Capa (Banner)',
+        cropType: 'cover',
+        targetCallback: async (croppedFile) => {
+          try {
+            setIsUploadingCoverImage(true);
+            showToast('Enviando foto de capa para o Cloudinary...');
+            const imageUrl = await uploadImageToCloudinary(croppedFile);
+            updateProfile({ coverImage: imageUrl });
+            showToast('Foto de capa atualizada com sucesso!');
+            setCropperModal(prev => ({ ...prev, isOpen: false }));
+          } catch (err) {
+            alert('Erro ao enviar imagem: ' + (err.message || 'Erro no upload'));
+          } finally {
+            setIsUploadingCoverImage(false);
+          }
+        }
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
-  const handleLogoFileUpload = async (e) => {
+  const handleLogoFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    try {
-      setIsUploadingLogoImage(true);
-      showToast('Enviando logotipo para o Cloudinary...');
-      const imageUrl = await uploadImageToCloudinary(file);
-      updateProfile({ logoImage: imageUrl });
-      showToast('Logotipo atualizado com sucesso!');
-    } catch (err) {
-      alert('Erro ao enviar imagem: ' + (err.message || 'Erro no upload'));
-    } finally {
-      setIsUploadingLogoImage(false);
-    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setCropperModal({
+        isOpen: true,
+        imageSrc: ev.target.result,
+        title: 'Recortar Logotipo da Barbearia',
+        cropType: 'logo',
+        targetCallback: async (croppedFile) => {
+          try {
+            setIsUploadingLogoImage(true);
+            showToast('Enviando logotipo para o Cloudinary...');
+            const imageUrl = await uploadImageToCloudinary(croppedFile);
+            updateProfile({ logoImage: imageUrl });
+            showToast('Logotipo atualizado com sucesso!');
+            setCropperModal(prev => ({ ...prev, isOpen: false }));
+          } catch (err) {
+            alert('Erro ao enviar imagem: ' + (err.message || 'Erro no upload'));
+          } finally {
+            setIsUploadingLogoImage(false);
+          }
+        }
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
-  const handleGalleryFileUpload = async (e) => {
+  const handleGalleryFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    try {
-      setIsUploadingGalleryImage(true);
-      showToast('Enviando foto do espaço para o Cloudinary...');
-      const imageUrl = await uploadImageToCloudinary(file);
-      addGalleryImage(imageUrl);
-      showToast('Nova foto adicionada à galeria!');
-    } catch (err) {
-      alert('Erro ao enviar imagem: ' + (err.message || 'Erro no upload'));
-    } finally {
-      setIsUploadingGalleryImage(false);
-    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setCropperModal({
+        isOpen: true,
+        imageSrc: ev.target.result,
+        title: 'Recortar Foto do Espaço / Galeria',
+        cropType: 'gallery',
+        targetCallback: async (croppedFile) => {
+          try {
+            setIsUploadingGalleryImage(true);
+            showToast('Enviando foto do espaço para o Cloudinary...');
+            const imageUrl = await uploadImageToCloudinary(croppedFile);
+            addGalleryImage(imageUrl);
+            showToast('Nova foto adicionada à galeria!');
+            setCropperModal(prev => ({ ...prev, isOpen: false }));
+          } catch (err) {
+            alert('Erro ao enviar imagem: ' + (err.message || 'Erro no upload'));
+          } finally {
+            setIsUploadingGalleryImage(false);
+          }
+        }
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const handleImportJsonFile = (e) => {
@@ -2003,6 +2083,22 @@ export default function BarberDashboard({ onBackToClientView }) {
           </div>
         </div>
       )}
+
+      {/* Modal de Recorte e Edição de Fotos Interativo */}
+      <ImageCropperModal
+        isOpen={cropperModal.isOpen}
+        imageSrc={cropperModal.imageSrc}
+        title={cropperModal.title}
+        cropType={cropperModal.cropType}
+        onClose={() => setCropperModal(prev => ({ ...prev, isOpen: false }))}
+        onCropConfirm={async (croppedFile) => {
+          if (cropperModal.targetCallback) {
+            await cropperModal.targetCallback(croppedFile);
+          }
+        }}
+        isUploading={isUploadingServiceImage || isUploadingProfileImage || isUploadingCoverImage || isUploadingLogoImage || isUploadingGalleryImage}
+        themeColor={theme.primary}
+      />
 
     </div>
   );
