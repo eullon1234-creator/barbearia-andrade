@@ -253,12 +253,13 @@ def create_manual():
         [
             Paragraph(
                 "• <b>Para que serve:</b> É o link oficial da sua barbearia que você coloca na <b>Bio do seu Instagram</b> e envia no WhatsApp dos clientes.<br/>"
+                "• <b>Seu Link Oficial:</b><br/><b>https://barbearia-andrade.netlify.app/</b><br/>"
                 "• <b>O que o cliente vê:</b> Catálogo de cortes com fotos, preços, horários disponíveis, feed de fotos, avaliações e login VIP.",
                 card_text
             ),
             Paragraph(
                 "• <b>Para que serve:</b> É a sua central administrativa privada. <b>Nenhum cliente tem acesso a esse painel!</b><br/>"
-                "• <b>Como acessar:</b> Adicione <b>#/barbeiro</b> no final do seu link (ex: <i>seusite.com/#/barbeiro</i>).<br/>"
+                "• <b>Seu Link de Barbeiro:</b><br/><b>https://barbearia-andrade.netlify.app/#/barbeiro</b><br/>"
                 "• <b>O que você faz nele:</b> Vê a agenda do dia, faturamento, cadastra novos cortes, posta no feed e ajusta horários.",
                 card_text
             )
@@ -449,7 +450,7 @@ def create_manual():
                 "• <b>Barbearia Andrade | Saymon Andrade</b><br/>"
                 "• <i>Especialista em Degradê, Barba & Visagismo</i><br/>"
                 "• Agende seu horário online em menos de 1 minuto:<br/>"
-                "• <b>[LINK DO SEU APLICATIVO]</b>",
+                "• <b>https://barbearia-andrade.netlify.app/</b>",
                 card_text
             )
         ],
@@ -459,7 +460,7 @@ def create_manual():
         [
             Paragraph(
                 "Mande para os seus contatos que costumam cortar cabelo com você:<br/>"
-                "<i>'Fala meu amigo, tudo bem? Passando para avisar que agora a Barbearia Andrade tá com aplicativo próprio de agendamento! Ficou muito mais rápido para você escolher o corte, ver os horários livres e marcar direto. Além disso, a cada corte você ganha pontos no Cartão Fidelidade! Clica aqui para conferir: [LINK DO APP]'</i>",
+                "<i>'Fala meu amigo, tudo bem? Passando para avisar que agora a Barbearia Andrade tá com aplicativo próprio de agendamento! Ficou muito mais rápido para você escolher o corte, ver os horários livres e marcar direto. Além disso, a cada corte você ganha pontos no Cartão Fidelidade! Clica aqui para conferir: https://barbearia-andrade.netlify.app/'</i>",
                 card_text
             )
         ],
