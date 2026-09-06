@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { BARBERSHOP_DATA } from '../data/barberData';
 import { db as firestoreDb } from '../services/firebase';
-import { collection, doc, setDoc, deleteDoc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, updateDoc, onSnapshot, getDoc } from 'firebase/firestore';
 
 const BarberContext = createContext(null);
 
@@ -349,34 +349,157 @@ export function BarberProvider({ children }) {
     localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(appointments));
   }, [appointments]);
 
-  // Sincronização em tempo real com Firebase Firestore
+  // Sincronização em Tempo Real com Firebase Firestore
+  const [cloudSyncStatus, setCloudSyncStatus] = useState('conectado');
+  const [isCloudSyncing, setIsCloudSyncing] = useState(false);
+
+  const saveToFirestore = async (docId, rawData) => {
+    try {
+      const safeData = JSON.parse(JSON.stringify(rawData, (k, v) => (v === undefined ? null : v)));
+      await setDoc(doc(firestoreDb, 'barbershop', docId), {
+        data: safeData,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    } catch (err) {
+      console.warn(`[Firestore] Erro ao salvar ${docId}:`, err.message);
+    }
+  };
+
   useEffect(() => {
-    let unsubscribe = null;
+    const unsubs = [];
+    let isMounted = true;
+
+    // 1. Perfil da Barbearia (Foto de perfil, Capa, Logo, Bio, WhatsApp, etc.)
+    try {
+      const unsubProfile = onSnapshot(doc(firestoreDb, 'barbershop', 'profile'), (snap) => {
+        if (!isMounted) return;
+        if (snap.exists() && snap.data()?.data) {
+          const cloudProfile = snap.data().data;
+          setProfile(prev => ({ ...prev, ...cloudProfile }));
+          localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(cloudProfile));
+        } else {
+          saveToFirestore('profile', profile);
+        }
+      }, (err) => console.warn('[Firestore] Erro no perfil:', err.message));
+      unsubs.push(unsubProfile);
+    } catch (e) {
+      console.warn(e);
+    }
+
+    // 2. Serviços & Cortes
+    try {
+      const unsubServices = onSnapshot(doc(firestoreDb, 'barbershop', 'services'), (snap) => {
+        if (!isMounted) return;
+        if (snap.exists() && Array.isArray(snap.data()?.data) && snap.data().data.length > 0) {
+          const cloudServices = snap.data().data;
+          setServices(cloudServices);
+          localStorage.setItem(STORAGE_KEYS.SERVICES, JSON.stringify(cloudServices));
+        } else {
+          saveToFirestore('services', services);
+        }
+      }, (err) => console.warn('[Firestore] Erro em serviços:', err.message));
+      unsubs.push(unsubServices);
+    } catch (e) {
+      console.warn(e);
+    }
+
+    // 3. Feed de Fotos (Lookbook Estilo Instagram)
+    try {
+      const unsubFeed = onSnapshot(doc(firestoreDb, 'barbershop', 'feed'), (snap) => {
+        if (!isMounted) return;
+        if (snap.exists() && Array.isArray(snap.data()?.data)) {
+          const cloudFeed = snap.data().data;
+          setFeedPosts(cloudFeed);
+          localStorage.setItem(STORAGE_KEYS.FEED_POSTS, JSON.stringify(cloudFeed));
+        } else {
+          saveToFirestore('feed', feedPosts);
+        }
+      }, (err) => console.warn('[Firestore] Erro no feed:', err.message));
+      unsubs.push(unsubFeed);
+    } catch (e) {
+      console.warn(e);
+    }
+
+    // 4. Galeria de Fotos
+    try {
+      const unsubGallery = onSnapshot(doc(firestoreDb, 'barbershop', 'gallery'), (snap) => {
+        if (!isMounted) return;
+        if (snap.exists() && Array.isArray(snap.data()?.data)) {
+          const cloudGallery = snap.data().data;
+          setGalleryImages(cloudGallery);
+          localStorage.setItem(STORAGE_KEYS.GALLERY, JSON.stringify(cloudGallery));
+        } else {
+          saveToFirestore('gallery', galleryImages);
+        }
+      }, (err) => console.warn('[Firestore] Erro na galeria:', err.message));
+      unsubs.push(unsubGallery);
+    } catch (e) {
+      console.warn(e);
+    }
+
+    // 5. Horários & Pausas
+    try {
+      const unsubSchedule = onSnapshot(doc(firestoreDb, 'barbershop', 'schedule'), (snap) => {
+        if (!isMounted) return;
+        if (snap.exists() && snap.data()?.data) {
+          const cloudSchedule = snap.data().data;
+          setScheduleConfig(prev => ({ ...prev, ...cloudSchedule }));
+          localStorage.setItem(STORAGE_KEYS.SCHEDULE, JSON.stringify(cloudSchedule));
+        } else {
+          saveToFirestore('schedule', scheduleConfig);
+        }
+      }, (err) => console.warn('[Firestore] Erro nos horários:', err.message));
+      unsubs.push(unsubSchedule);
+    } catch (e) {
+      console.warn(e);
+    }
+
+    // 6. Tema de Cores
+    try {
+      const unsubTheme = onSnapshot(doc(firestoreDb, 'barbershop', 'theme'), (snap) => {
+        if (!isMounted) return;
+        if (snap.exists() && snap.data()?.data) {
+          const cloudTheme = snap.data().data;
+          setTheme(cloudTheme);
+          localStorage.setItem(STORAGE_KEYS.THEME, JSON.stringify(cloudTheme));
+        } else {
+          saveToFirestore('theme', theme);
+        }
+      }, (err) => console.warn('[Firestore] Erro no tema:', err.message));
+      unsubs.push(unsubTheme);
+    } catch (e) {
+      console.warn(e);
+    }
+
+    // 7. Agendamentos em Tempo Real
     try {
       const colRef = collection(firestoreDb, 'appointments');
-      unsubscribe = onSnapshot(colRef, (snapshot) => {
+      const unsubApts = onSnapshot(colRef, (snapshot) => {
+        if (!isMounted) return;
         if (!snapshot.empty) {
           const list = snapshot.docs.map(d => ({
             id: d.id,
             ...d.data()
           }));
-          // Ordena pelos mais recentes
           list.sort((a, b) => {
             const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
             const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
             return timeB - timeA;
           });
           setAppointments(list);
+          localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(list));
         }
       }, (err) => {
-        console.warn('Firebase offline ou usando dados locais:', err.message);
+        console.warn('[Firestore] Erro em agendamentos:', err.message);
       });
+      unsubs.push(unsubApts);
     } catch (e) {
-      console.warn('Erro ao conectar listener do Firestore:', e);
+      console.warn(e);
     }
 
     return () => {
-      if (unsubscribe) unsubscribe();
+      isMounted = false;
+      unsubs.forEach(u => typeof u === 'function' && u());
     };
   }, []);
 
@@ -521,20 +644,36 @@ export function BarberProvider({ children }) {
       popular: !!newService.popular,
       badge: newService.badge || '',
     };
-    setServices(prev => [created, ...prev]);
+    setServices(prev => {
+      const updated = [created, ...prev];
+      saveToFirestore('services', updated);
+      return updated;
+    });
   };
 
   const updateService = (id, updatedFields) => {
-    setServices(prev => prev.map(s => s.id === id ? { ...s, ...updatedFields } : s));
+    setServices(prev => {
+      const updated = prev.map(s => s.id === id ? { ...s, ...updatedFields } : s);
+      saveToFirestore('services', updated);
+      return updated;
+    });
   };
 
   const deleteService = (id) => {
-    setServices(prev => prev.filter(s => s.id !== id));
+    setServices(prev => {
+      const updated = prev.filter(s => s.id !== id);
+      saveToFirestore('services', updated);
+      return updated;
+    });
   };
 
   // Ações de Comodidades
   const toggleAmenity = (id) => {
-    setAmenities(prev => prev.map(a => a.id === id ? { ...a, enabled: !a.enabled } : a));
+    setAmenities(prev => {
+      const updated = prev.map(a => a.id === id ? { ...a, enabled: !a.enabled } : a);
+      saveToFirestore('amenities', updated);
+      return updated;
+    });
   };
 
   const addAmenity = (label, icon = 'Sparkles') => {
@@ -544,46 +683,78 @@ export function BarberProvider({ children }) {
       icon,
       enabled: true,
     };
-    setAmenities(prev => [...prev, newAm]);
+    setAmenities(prev => {
+      const updated = [...prev, newAm];
+      saveToFirestore('amenities', updated);
+      return updated;
+    });
   };
 
   const deleteAmenity = (id) => {
-    setAmenities(prev => prev.filter(a => a.id !== id));
+    setAmenities(prev => {
+      const updated = prev.filter(a => a.id !== id);
+      saveToFirestore('amenities', updated);
+      return updated;
+    });
   };
 
   // Ações de Galeria
   const addGalleryImage = (url) => {
     if (!url) return;
-    setGalleryImages(prev => [...prev, url]);
+    setGalleryImages(prev => {
+      const updated = [...prev, url];
+      saveToFirestore('gallery', updated);
+      return updated;
+    });
   };
 
   const removeGalleryImage = (indexToRemove) => {
-    setGalleryImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
+    setGalleryImages(prev => {
+      const updated = prev.filter((_, idx) => idx !== indexToRemove);
+      saveToFirestore('gallery', updated);
+      return updated;
+    });
   };
 
   // Ações de Perfil & Especialidades
   const updateProfile = (fields) => {
-    setProfile(prev => ({ ...prev, ...fields }));
+    setProfile(prev => {
+      const updated = { ...prev, ...fields };
+      saveToFirestore('profile', updated);
+      return updated;
+    });
   };
 
   const addSpecialty = (item) => {
     if (!item || !item.trim()) return;
-    setProfile(prev => ({
-      ...prev,
-      specialties: [...prev.specialties, item.trim()]
-    }));
+    setProfile(prev => {
+      const updated = {
+        ...prev,
+        specialties: [...prev.specialties, item.trim()]
+      };
+      saveToFirestore('profile', updated);
+      return updated;
+    });
   };
 
   const removeSpecialty = (indexToRemove) => {
-    setProfile(prev => ({
-      ...prev,
-      specialties: prev.specialties.filter((_, idx) => idx !== indexToRemove)
-    }));
+    setProfile(prev => {
+      const updated = {
+        ...prev,
+        specialties: prev.specialties.filter((_, idx) => idx !== indexToRemove)
+      };
+      saveToFirestore('profile', updated);
+      return updated;
+    });
   };
 
   // Ações de Horários & Intervalos
   const updateSchedule = (fields) => {
-    setScheduleConfig(prev => ({ ...prev, ...fields }));
+    setScheduleConfig(prev => {
+      const updated = { ...prev, ...fields };
+      saveToFirestore('schedule', updated);
+      return updated;
+    });
   };
 
   const triggerQuickPause = (minutes) => {
@@ -591,30 +762,40 @@ export function BarberProvider({ children }) {
     until.setMinutes(until.getMinutes() + minutes);
     const timeFormatted = `${until.getHours().toString().padStart(2, '0')}:${until.getMinutes().toString().padStart(2, '0')}`;
     
-    setScheduleConfig(prev => ({
-      ...prev,
-      status: `Em Pausa (${minutes}m)`,
-      currentPauseEndTime: timeFormatted,
-    }));
+    setScheduleConfig(prev => {
+      const updated = {
+        ...prev,
+        status: `Em Pausa (${minutes}m)`,
+        currentPauseEndTime: timeFormatted,
+      };
+      saveToFirestore('schedule', updated);
+      return updated;
+    });
   };
 
   const resumeStatus = () => {
-    setScheduleConfig(prev => ({
-      ...prev,
-      status: 'Disponível',
-      currentPauseEndTime: null,
-      vacationMode: false,
-    }));
+    setScheduleConfig(prev => {
+      const updated = {
+        ...prev,
+        status: 'Disponível',
+        currentPauseEndTime: null,
+        vacationMode: false,
+      };
+      saveToFirestore('schedule', updated);
+      return updated;
+    });
   };
 
   const toggleVacationMode = () => {
     setScheduleConfig(prev => {
       const nextMode = !prev.vacationMode;
-      return {
+      const updated = {
         ...prev,
         vacationMode: nextMode,
         status: nextMode ? 'Modo Férias' : 'Disponível',
       };
+      saveToFirestore('schedule', updated);
+      return updated;
     });
   };
 
@@ -670,41 +851,82 @@ export function BarberProvider({ children }) {
       comments: [],
       ...newPost,
     };
-    setFeedPosts(prev => [created, ...prev]);
+    setFeedPosts(prev => {
+      const updated = [created, ...prev];
+      saveToFirestore('feed', updated);
+      return updated;
+    });
   };
 
   const deleteFeedPost = (id) => {
-    setFeedPosts(prev => prev.filter(p => p.id !== id));
+    setFeedPosts(prev => {
+      const updated = prev.filter(p => p.id !== id);
+      saveToFirestore('feed', updated);
+      return updated;
+    });
   };
 
   const updateFeedPost = (id, updatedFields) => {
-    setFeedPosts(prev => prev.map(p => p.id === id ? { ...p, ...updatedFields } : p));
+    setFeedPosts(prev => {
+      const updated = prev.map(p => p.id === id ? { ...p, ...updatedFields } : p);
+      saveToFirestore('feed', updated);
+      return updated;
+    });
   };
 
   const toggleLikeFeedPost = (id) => {
-    setFeedPosts(prev => prev.map(p => {
-      if (p.id === id) {
-        const isLiked = !!p.isLiked;
-        return {
-          ...p,
-          isLiked: !isLiked,
-          likes: Math.max(0, (p.likes || 0) + (isLiked ? -1 : 1))
-        };
-      }
-      return p;
-    }));
+    setFeedPosts(prev => {
+      const updated = prev.map(p => {
+        if (p.id === id) {
+          const isLiked = !!p.isLiked;
+          return {
+            ...p,
+            isLiked: !isLiked,
+            likes: Math.max(0, (p.likes || 0) + (isLiked ? -1 : 1))
+          };
+        }
+        return p;
+      });
+      saveToFirestore('feed', updated);
+      return updated;
+    });
   };
 
   const addCommentToFeedPost = (postId, comment) => {
-    setFeedPosts(prev => prev.map(p => {
-      if (p.id === postId) {
-        return {
-          ...p,
-          comments: [...(p.comments || []), { id: 'c-' + Date.now(), ...comment }]
-        };
-      }
-      return p;
-    }));
+    setFeedPosts(prev => {
+      const updated = prev.map(p => {
+        if (p.id === postId) {
+          return {
+            ...p,
+            comments: [...(p.comments || []), { id: 'c-' + Date.now(), ...comment }]
+          };
+        }
+        return p;
+      });
+      saveToFirestore('feed', updated);
+      return updated;
+    });
+  };
+
+  const syncLocalToCloud = async () => {
+    setIsCloudSyncing(true);
+    try {
+      await Promise.all([
+        saveToFirestore('profile', profile),
+        saveToFirestore('services', services),
+        saveToFirestore('amenities', amenities),
+        saveToFirestore('gallery', galleryImages),
+        saveToFirestore('schedule', scheduleConfig),
+        saveToFirestore('feed', feedPosts),
+        saveToFirestore('theme', theme),
+      ]);
+      return true;
+    } catch (e) {
+      console.warn('[Firestore] Erro ao sincronizar:', e);
+      return false;
+    } finally {
+      setIsCloudSyncing(false);
+    }
   };
 
   // Exportar / Importar Configuração Completa (Backup / Whitelabel)
@@ -816,6 +1038,10 @@ export function BarberProvider({ children }) {
         clientLogout,
         getClientAppointments,
         getClientStats,
+
+        cloudSyncStatus,
+        isCloudSyncing,
+        syncLocalToCloud,
 
         exportConfiguration,
         importConfiguration,

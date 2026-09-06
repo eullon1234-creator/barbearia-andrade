@@ -26,6 +26,7 @@ export default function BarberDashboard({ onBackToClientView }) {
     scheduleConfig, updateSchedule, triggerQuickPause, resumeStatus, toggleVacationMode,
     appointments, updateAppointmentStatus, addAppointment, deleteAppointment,
     feedPosts, addFeedPost, updateFeedPost, deleteFeedPost,
+    cloudSyncStatus, isCloudSyncing, syncLocalToCloud,
     exportConfiguration, importConfiguration, resetToFactoryDefaults
   } = useBarber();
 
@@ -637,6 +638,20 @@ export default function BarberDashboard({ onBackToClientView }) {
           </div>
 
           <div className="flex items-center gap-1.5">
+            <button
+              onClick={async () => {
+                showToast('Sincronizando com o Firebase...');
+                const ok = await syncLocalToCloud();
+                showToast(ok ? 'Fotos e dados sincronizados com a nuvem!' : 'Erro ao sincronizar.');
+              }}
+              disabled={isCloudSyncing}
+              className="px-2.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+              title="Sincronizar fotos e dados com o Firebase para atualizar todos os aparelhos"
+            >
+              <span className={`w-2 h-2 rounded-full bg-emerald-400 ${isCloudSyncing ? 'animate-ping' : 'animate-pulse'}`} />
+              <span>{isCloudSyncing ? 'Salvando...' : 'Firebase Nuvem'}</span>
+            </button>
+
             <button
               onClick={handleCopyClientLink}
               className="px-2.5 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-700 theme-text-accent border border-dark-700 text-[11px] font-bold flex items-center gap-1 transition-all"
