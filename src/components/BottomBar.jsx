@@ -2,6 +2,7 @@ import React from 'react';
 import { Home, Calendar, MessageCircle, User } from 'lucide-react';
 import { useBarber } from '../context/BarberContext';
 import { InstagramIcon } from './Icons';
+import { getWhatsAppUrl } from '../utils/phoneUtils';
 
 export default function BottomBar({ onOpenBooking, clientTab = 'home', onSelectTab, onOpenClientAuth, onOpenClientProfile }) {
   const { profile, currentClient } = useBarber();
@@ -65,7 +66,7 @@ export default function BottomBar({ onOpenBooking, clientTab = 'home', onSelectT
 
         {/* Botão de WhatsApp */}
         <a
-          href={`https://wa.me/${profile.whatsappNumber}?text=Olá%20${encodeURIComponent(profile.owner)}!%20Gostaria%20de%20tirar%20uma%20dúvida.`}
+          href={getWhatsAppUrl(profile.whatsappNumber, `Olá ${profile.owner}! Gostaria de tirar uma dúvida.`)}
           target="_blank"
           rel="noopener noreferrer"
           className="py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1 text-emerald-400 hover:text-emerald-300 hover:bg-dark-900 transition-all"

@@ -8,6 +8,7 @@ import {
 import confetti from 'canvas-confetti';
 import { useBarber } from '../context/BarberContext';
 import { getGoogleCalendarUrl, downloadIcsFile } from '../utils/calendarUtils';
+import { getWhatsAppUrl } from '../utils/phoneUtils';
 
 export default function BookingModal({ isOpen, onClose, initialService }) {
   const { services, profile, scheduleConfig, appointments, addAppointment, extras, currentClient, clientLogin } = useBarber();
@@ -342,8 +343,7 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
     message += `📍 *Local:* ${profile.address}\n\n` +
       `Pode confirmar este horário para mim?`;
 
-    const encodedMessage = encodeURIComponent(message);
-    const waUrl = `https://wa.me/${profile.whatsappNumber}?text=${encodedMessage}`;
+    const waUrl = getWhatsAppUrl(profile.whatsappNumber, message);
     window.open(waUrl, '_blank');
   };
 

@@ -7,7 +7,7 @@ import {
 import { useBarber } from '../context/BarberContext';
 
 export default function ClientProfileModal({ isOpen, onClose, onOpenBooking }) {
-  const { currentClient, clientLogout, getClientStats } = useBarber();
+  const { currentClient, clientLogout, getClientStats, services } = useBarber();
 
   if (!isOpen || !currentClient) return null;
 
@@ -24,8 +24,9 @@ export default function ClientProfileModal({ isOpen, onClose, onOpenBooking }) {
   const handleRepeatCut = (apt) => {
     onClose();
     if (onOpenBooking) {
-      // Tenta achar o serviço correspondente
-      onOpenBooking(null);
+      // Tenta achar o serviço correspondente para abrir o agendamento já selecionado
+      const svc = services?.find(s => s.name === apt.service || s.name === apt.baseService);
+      onOpenBooking(svc || null);
     }
   };
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { Scissors, MessageCircle, User } from 'lucide-react';
 import { useBarber } from '../context/BarberContext';
 import { InstagramIcon } from './Icons';
+import { getWhatsAppUrl } from '../utils/phoneUtils';
 
 export default function Navbar({ onOpenBooking, clientTab = 'home', onSelectTab, onOpenClientAuth, onOpenClientProfile }) {
   const { profile, scheduleConfig, currentClient } = useBarber();
@@ -120,7 +121,7 @@ export default function Navbar({ onOpenBooking, clientTab = 'home', onSelectTab,
           )}
 
           <a
-            href={`https://wa.me/${profile.whatsappNumber}?text=Olá%20${encodeURIComponent(profile.owner)}!%20Gostaria%20de%20tirar%20uma%20dúvida.`}
+            href={getWhatsAppUrl(profile.whatsappNumber, `Olá ${profile.owner}! Gostaria de tirar uma dúvida.`)}
             target="_blank"
             rel="noopener noreferrer"
             className="px-2.5 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5 text-xs font-bold transition-all shadow-sm"

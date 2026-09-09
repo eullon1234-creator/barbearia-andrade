@@ -2,6 +2,7 @@ import React from 'react';
 import { Scissors, MessageCircle, MapPin } from 'lucide-react';
 import { InstagramIcon } from './Icons';
 import { useBarber } from '../context/BarberContext';
+import { getWhatsAppUrl } from '../utils/phoneUtils';
 
 export default function Footer({ onOpenBooking }) {
   const { profile } = useBarber();
@@ -39,7 +40,7 @@ export default function Footer({ onOpenBooking }) {
         {/* Links de Redes e Contato */}
         <div className="flex items-center justify-center gap-3 pt-2">
           <a
-            href={`https://wa.me/${profile.whatsappNumber}?text=Olá%20${encodeURIComponent(profile.owner)}!`}
+            href={getWhatsAppUrl(profile.whatsappNumber, `Olá ${profile.owner}!`)}
             target="_blank"
             rel="noopener noreferrer"
             className="w-9 h-9 rounded-full bg-dark-850 hover:bg-dark-800 border border-dark-750 flex items-center justify-center text-emerald-400 hover:scale-110 transition-all"

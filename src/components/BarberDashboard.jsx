@@ -15,6 +15,7 @@ import BarberAnalytics from './BarberAnalytics';
 import { getMapEmbedUrl } from '../utils/mapUtils';
 import ImageCropperModal from './ImageCropperModal';
 import { InstagramIcon } from './Icons';
+import { getCleanWhatsAppNumber } from '../utils/phoneUtils';
 
 export default function BarberDashboard({ onBackToClientView }) {
   const {
@@ -1671,7 +1672,7 @@ export default function BarberDashboard({ onBackToClientView }) {
                     value={profile.phone}
                     onChange={(e) => updateProfile({ 
                       phone: e.target.value,
-                      whatsappNumber: e.target.value.replace(/\D/g, '')
+                      whatsappNumber: getCleanWhatsAppNumber(e.target.value)
                     })}
                     className="w-full p-2 rounded-xl bg-dark-850 border border-dark-700 text-white text-xs"
                   />

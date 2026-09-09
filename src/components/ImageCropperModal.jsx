@@ -15,8 +15,6 @@ export default function ImageCropperModal({
   isUploading = false,
   themeColor = '#D4AF37'
 }) {
-  if (!isOpen || !imageSrc) return null;
-
   // Proporções padrão de acordo com o tipo
   const defaultAspect = cropType === 'avatar' || cropType === 'logo'
     ? '1:1'
@@ -103,6 +101,7 @@ export default function ImageCropperModal({
 
   // Gera o corte em Canvas e retorna Blob
   const generateCroppedBlob = useCallback(async () => {
+    if (!imageSrc) return null;
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
@@ -180,6 +179,7 @@ export default function ImageCropperModal({
 
   // Atualiza preview em tempo real
   useEffect(() => {
+    if (!isOpen || !imageSrc) return;
     let active = true;
     const timer = setTimeout(async () => {
       try {
@@ -197,7 +197,18 @@ export default function ImageCropperModal({
       active = false;
       clearTimeout(timer);
     };
-  }, [generateCroppedBlob]);
+  }, [isOpen, imageSrc, generateCroppedBlob]);
+
+  // Reseta controles quando o modal abrir com nova foto
+  useEffect(() => {
+    if (isOpen) {
+      setAspectRatio(defaultAspect);
+      setZoom(1);
+      setRotation(0);
+      setPosition({ x: 0, y: 0 });
+      setActiveTab('editor');
+    }
+  }, [isOpen, defaultAspect, imageSrc]);
 
   // Confirma e envia cortado
   const handleConfirm = async () => {
@@ -223,6 +234,8 @@ export default function ImageCropperModal({
   };
 
   const targetAspect = getNumericAspect(aspectRatio);
+
+  if (!isOpen || !imageSrc) return null;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">

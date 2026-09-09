@@ -2,6 +2,7 @@ import React from 'react';
 import { Calendar, MessageCircle, MapPin, Star, Award, Sparkles, Clock, AlertTriangle } from 'lucide-react';
 import { InstagramIcon } from './Icons';
 import { useBarber } from '../context/BarberContext';
+import { getWhatsAppUrl } from '../utils/phoneUtils';
 
 export default function Hero({ onOpenBooking }) {
   const { profile, scheduleConfig } = useBarber();
@@ -83,7 +84,7 @@ export default function Hero({ onOpenBooking }) {
       {/* Atalhos Rápidos */}
       <div className="grid grid-cols-3 gap-2 mt-3">
         <a
-          href={`https://wa.me/${profile.whatsappNumber}?text=Olá%20${encodeURIComponent(profile.owner)}!%20Gostaria%20de%20tirar%20uma%20dúvida.`}
+          href={getWhatsAppUrl(profile.whatsappNumber, `Olá ${profile.owner}! Gostaria de tirar uma dúvida.`)}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-1.5 p-2.5 rounded-xl bg-dark-850 hover:bg-dark-800 border border-dark-700/80 hover:border-emerald-500/40 text-neutral-300 hover:text-emerald-400 transition-all text-xs font-medium"

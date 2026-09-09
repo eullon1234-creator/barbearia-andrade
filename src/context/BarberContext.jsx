@@ -477,10 +477,26 @@ export function BarberProvider({ children }) {
       const unsubApts = onSnapshot(colRef, (snapshot) => {
         if (!isMounted) return;
         if (!snapshot.empty) {
-          const list = snapshot.docs.map(d => ({
-            id: d.id,
-            ...d.data()
-          }));
+          const list = snapshot.docs.map(d => {
+            const data = d.data();
+            let date = data.date;
+            if (!date && data.createdAt) {
+              date = data.createdAt.split('T')[0];
+            }
+            if (!date && d.id.startsWith('apt-')) {
+              const ts = parseInt(d.id.replace('apt-', ''));
+              if (!isNaN(ts) && ts > 1000000000000) {
+                const dt = new Date(ts);
+                const pad = (n) => String(n).padStart(2, '0');
+                date = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+              }
+            }
+            return {
+              id: d.id,
+              ...data,
+              date: date || '2026-09-04'
+            };
+          });
           list.sort((a, b) => {
             const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
             const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -488,6 +504,9 @@ export function BarberProvider({ children }) {
           });
           setAppointments(list);
           localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(list));
+        } else {
+          setAppointments([]);
+          localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify([]));
         }
       }, (err) => {
         console.warn('[Firestore] Erro em agendamentos:', err.message);
@@ -592,7 +611,9 @@ export function BarberProvider({ children }) {
     const clean = phoneOrCleanPhone.replace(/\D/g, '');
     return appointments.filter(a => {
       const aClean = (a.phone || '').replace(/\D/g, '');
-      return aClean === clean;
+      return aClean === clean || 
+        (clean.length >= 10 && aClean.endsWith(clean)) || 
+        (aClean.length >= 10 && clean.endsWith(aClean));
     });
   };
 

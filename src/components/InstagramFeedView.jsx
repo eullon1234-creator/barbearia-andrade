@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useBarber } from '../context/BarberContext';
 import { InstagramIcon } from './Icons';
+import { getWhatsAppUrl } from '../utils/phoneUtils';
 
 export default function InstagramFeedView({ onBackToHome, onOpenBooking }) {
   const { profile, services, feedPosts, toggleLikeFeedPost, addCommentToFeedPost } = useBarber();
@@ -88,7 +89,7 @@ export default function InstagramFeedView({ onBackToHome, onOpenBooking }) {
 
         <div className="flex items-center gap-3">
           <a
-            href={`https://wa.me/${profile.whatsappNumber}?text=Olá%20Saymon!%20Vi%20as%20fotos%20no%20feed%20e%20gostaria%20de%20tirar%20uma%20dúvida.`}
+            href={getWhatsAppUrl(profile.whatsappNumber, 'Olá Saymon! Vi as fotos no feed e gostaria de tirar uma dúvida.')}
             target="_blank"
             rel="noopener noreferrer"
             className="text-neutral-300 hover:text-white transition-colors"

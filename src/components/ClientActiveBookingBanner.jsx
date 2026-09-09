@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useBarber } from '../context/BarberContext';
 import { getGoogleCalendarUrl, downloadIcsFile } from '../utils/calendarUtils';
+import { getWhatsAppUrl } from '../utils/phoneUtils';
 
 export default function ClientActiveBookingBanner({ onOpenBookingModal }) {
   const { profile, updateAppointmentStatus } = useBarber();
@@ -128,10 +129,8 @@ export default function ClientActiveBookingBanner({ onOpenBookingModal }) {
     } catch (e) {}
 
     // Mensagem de cancelamento opcional para o WhatsApp
-    const message = encodeURIComponent(
-      `Olá Saymon! Precisei cancelar o agendamento de *${booking.service}* marcado para *${booking.date.split('-').reverse().join('/')} às ${booking.time}*. Nome: ${booking.client}.`
-    );
-    window.open(`https://wa.me/${profile.whatsappNumber}?text=${message}`, '_blank');
+    const message = `Olá Saymon! Precisei cancelar o agendamento de *${booking.service}* marcado para *${booking.date.split('-').reverse().join('/')} às ${booking.time}*. Nome: ${booking.client}.`;
+    window.open(getWhatsAppUrl(profile.whatsappNumber, message), '_blank');
     setShowDetails(false);
   };
 
@@ -383,7 +382,7 @@ export default function ClientActiveBookingBanner({ onOpenBookingModal }) {
               </button>
 
               <a
-                href={`https://wa.me/${profile.whatsappNumber}?text=${encodeURIComponent(`Olá Saymon! Tenho uma dúvida sobre meu agendamento de ${booking.service} no dia ${formattedDate} às ${booking.time}.`)}`}
+                href={getWhatsAppUrl(profile.whatsappNumber, `Olá Saymon! Tenho uma dúvida sobre meu agendamento de ${booking.service} no dia ${formattedDate} às ${booking.time}.`)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-dark-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow"
