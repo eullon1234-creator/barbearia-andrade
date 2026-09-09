@@ -812,8 +812,13 @@ export function BarberProvider({ children }) {
   };
 
   const addAppointment = (newApt) => {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
     const created = {
       id: 'apt-' + Date.now(),
+      date: newApt.date || todayStr,
       ...newApt,
       status: newApt.status || 'Confirmado',
       createdAt: new Date().toISOString()

@@ -63,10 +63,11 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
     const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
     const weekNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
+    const pad = (n) => String(n).padStart(2, '0');
     const formatDayObj = (d, index) => {
       const dayOfWeek = d.getDay(); // 0 = Dom, 6 = Sáb
       const isSunday = dayOfWeek === 0;
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
       const dayNumber = d.getDate().toString().padStart(2, '0');
       const monthName = monthNames[d.getMonth()];
       const weekName = weekNames[dayOfWeek];
@@ -148,8 +149,12 @@ export default function BookingModal({ isOpen, onClose, initialService }) {
       const min = m % 60;
       const timeFormatted = `${h.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
       
-      // Verifica se já está agendado na lista de agendamentos
-      const isBooked = appointments.some(a => a.time === timeFormatted);
+      // Verifica se já está agendado na lista de agendamentos para a data selecionada
+      const isBooked = appointments.some(a => {
+        if (a.status === 'Cancelado') return false;
+        const aptDate = a.date;
+        return aptDate === selectedDate && a.time === timeFormatted;
+      });
 
       slots.push({
         time: timeFormatted,

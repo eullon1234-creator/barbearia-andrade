@@ -11,20 +11,50 @@ export default function BarberAnalytics() {
 
   const [periodFilter, setPeriodFilter] = useState('mes'); // 'hoje' | 'semana' | 'mes' | 'todos'
 
-  // Data atual de referência: 04/09/2026
-  const todayStr = '2026-09-04';
-  const currentMonth = '2026-09';
+  // Data atual de referência calculada dinamicamente com base no calendário real
+  const getTodayStr = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
-  // Filtra agendamentos baseado no período selecionado
+  const getCurrentMonthStr = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+  };
+
+  const getWeekRange = () => {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0 = Domingo, 1 = Segunda...
+    const diffToMonday = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diffToMonday);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+
+    const pad = (n) => String(n).padStart(2, '0');
+    const startStr = `${monday.getFullYear()}-${pad(monday.getMonth() + 1)}-${pad(monday.getDate())}`;
+    const endStr = `${sunday.getFullYear()}-${pad(sunday.getMonth() + 1)}-${pad(sunday.getDate())}`;
+    return { startStr, endStr };
+  };
+
+  // Filtra agendamentos baseado no período selecionado dinamicamente
   const filteredAppointments = useMemo(() => {
+    const todayStr = getTodayStr();
+    const currentMonth = getCurrentMonthStr();
+    const { startStr: weekStart, endStr: weekEnd } = getWeekRange();
+
     return appointments.filter(apt => {
       const aptDate = apt.date || todayStr;
       if (periodFilter === 'hoje') {
         return aptDate === todayStr;
       }
       if (periodFilter === 'semana') {
-        // Exemplo simplificado: primeiros 7 dias de setembro
-        return aptDate >= '2026-09-01' && aptDate <= '2026-09-07';
+        return aptDate >= weekStart && aptDate <= weekEnd;
       }
       if (periodFilter === 'mes') {
         return aptDate.startsWith(currentMonth);
@@ -118,7 +148,7 @@ export default function BarberAnalytics() {
   const handleExportCSV = () => {
     let csv = 'Data,Horario,Cliente,Telefone,Servico,Valor,Pagamento,Status\n';
     filteredAppointments.forEach(a => {
-      csv += `"${a.date || todayStr}","${a.time}","${a.client}","${a.phone}","${a.service}","R$ ${parseFloat(a.price).toFixed(2)}","${a.payment}","${a.status}"\n`;
+      csv += `"${a.date || getTodayStr()}","${a.time}","${a.client}","${a.phone}","${a.service}","R$ ${parseFloat(a.price).toFixed(2)}","${a.payment}","${a.status}"\n`;
     });
 
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -198,7 +228,7 @@ export default function BarberAnalytics() {
             <tbody>
               ${filteredAppointments.map(a => `
                 <tr>
-                  <td>${a.date ? a.date.split('-').reverse().join('/') : '04/09/2026'}</td>
+                  <td>${a.date ? a.date.split('-').reverse().join('/') : getTodayStr().split('-').reverse().join('/')}</td>
                   <td>${a.time}</td>
                   <td><strong>${a.client}</strong></td>
                   <td>${a.phone}</td>

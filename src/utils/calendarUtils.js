@@ -2,18 +2,25 @@
  * Utilitários para geração de lembretes em calendários (Google Agenda e Apple/Samsung .ics)
  */
 
+function getDefaultDateStr() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 /**
  * Formata data e hora para o padrão ISO básico exigido por calendários (YYYYMMDDTHHmmSS)
  */
 function formatCalendarDateTime(dateStr, timeStr) {
-  // dateStr: YYYY-MM-DD, timeStr: HH:MM
-  const cleanDate = dateStr.replace(/-/g, '');
+  const cleanDate = (dateStr || getDefaultDateStr()).replace(/-/g, '');
   const cleanTime = (timeStr || '14:00').replace(/:/g, '') + '00';
   return `${cleanDate}T${cleanTime}`;
 }
 
 function calculateEndDateTime(dateStr, timeStr, durationMinutes = 35) {
-  const [year, month, day] = (dateStr || '2026-09-04').split('-').map(Number);
+  const [year, month, day] = (dateStr || getDefaultDateStr()).split('-').map(Number);
   const [hours, minutes] = (timeStr || '14:00').split(':').map(Number);
 
   const startDate = new Date(year, month - 1, day, hours, minutes);
@@ -36,7 +43,7 @@ export function getGoogleCalendarUrl({
   title = 'Corte na Barbearia Andrade',
   description = 'Agendamento confirmado com Saymon Andrade.',
   location = 'Povoado Cigana, Tuntum - MA',
-  date = '2026-09-04',
+  date = getDefaultDateStr(),
   time = '14:00',
   durationMinutes = 35
 }) {
@@ -61,7 +68,7 @@ export function downloadIcsFile({
   title = 'Corte na Barbearia Andrade',
   description = 'Agendamento confirmado com Saymon Andrade.',
   location = 'Povoado Cigana, Tuntum - MA',
-  date = '2026-09-04',
+  date = getDefaultDateStr(),
   time = '14:00',
   durationMinutes = 35
 }) {

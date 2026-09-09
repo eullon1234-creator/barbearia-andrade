@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { 
   Calendar, Clock, CheckCircle2, Coffee, 
   Palmtree, DollarSign, Edit2, Trash2, Plus, 
@@ -69,7 +69,7 @@ export default function BarberDashboard({ onBackToClientView }) {
 
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
   const [appointmentForm, setAppointmentForm] = useState({
-    client: '', phone: '', service: '', time: '14:00', price: '', payment: 'Pix'
+    client: '', phone: '', service: '', date: '', time: '14:00', price: '', payment: 'Pix'
   });
 
   // Estados para Publicação / Edição no Feed do Instagram
@@ -398,7 +398,65 @@ export default function BarberDashboard({ onBackToClientView }) {
     reader.readAsText(file);
   };
 
-  // Cálculos financeiros
+  // Funções dinâmicas para controle de datas (fuso horário local)
+  const getTodayStr = () => {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  };
+
+  const getTomorrowStr = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+
+  const getWeekRange = () => {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const diffToMonday = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diffToMonday);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    const pad = (n) => String(n).padStart(2, '0');
+    const startStr = `${monday.getFullYear()}-${pad(monday.getMonth() + 1)}-${pad(monday.getDate())}`;
+    const endStr = `${sunday.getFullYear()}-${pad(sunday.getMonth() + 1)}-${pad(sunday.getDate())}`;
+    return { startStr, endStr };
+  };
+
+  const [agendaFilter, setAgendaFilter] = useState('hoje'); // 'hoje' | 'amanha' | 'semana' | 'todos'
+
+  const todayStr = getTodayStr();
+  const tomorrowStr = getTomorrowStr();
+  const { startStr: weekStart, endStr: weekEnd } = getWeekRange();
+
+  // Atendimentos específicos de HOJE para os cards do topo da Agenda
+  const todayAppointments = useMemo(() => {
+    return appointments.filter(a => (a.date || todayStr) === todayStr);
+  }, [appointments, todayStr]);
+
+  const todayCompleted = useMemo(() => {
+    return todayAppointments.filter(a => a.status === 'Concluído').length;
+  }, [todayAppointments]);
+
+  const todayBilling = useMemo(() => {
+    return todayAppointments.reduce((acc, curr) => acc + (parseFloat(curr.price) || 0), 0);
+  }, [todayAppointments]);
+
+  // Lista filtrada para a visualização da Agenda
+  const filteredAgendaAppointments = useMemo(() => {
+    return appointments.filter(apt => {
+      const aptDate = apt.date || todayStr;
+      if (agendaFilter === 'hoje') return aptDate === todayStr;
+      if (agendaFilter === 'amanha') return aptDate === tomorrowStr;
+      if (agendaFilter === 'semana') return aptDate >= weekStart && aptDate <= weekEnd;
+      return true; // 'todos'
+    });
+  }, [appointments, agendaFilter, todayStr, tomorrowStr, weekStart, weekEnd]);
+
+  // Cálculos financeiros gerais (total)
   const totalBilling = appointments.reduce((acc, curr) => acc + (parseFloat(curr.price) || 0), 0);
   const completedAppointments = appointments.filter(a => a.status === 'Concluído').length;
 
@@ -593,6 +651,7 @@ export default function BarberDashboard({ onBackToClientView }) {
       client: appointmentForm.client,
       phone: appointmentForm.phone || '(99) 99999-9999',
       service: appointmentForm.service,
+      date: appointmentForm.date || todayStr,
       time: appointmentForm.time,
       price: finalPrice,
       payment: appointmentForm.payment,
@@ -601,7 +660,7 @@ export default function BarberDashboard({ onBackToClientView }) {
 
     showToast('Agendamento manual adicionado!');
     setIsAppointmentModalOpen(false);
-    setAppointmentForm({ client: '', phone: '', service: '', time: '14:00', price: '', payment: 'Pix' });
+    setAppointmentForm({ client: '', phone: '', service: '', date: todayStr, time: '14:00', price: '', payment: 'Pix' });
   };
 
   return (
@@ -795,31 +854,81 @@ export default function BarberDashboard({ onBackToClientView }) {
       ========================================================================= */}
       {activeSubTab === 'agenda' && (
         <div className="space-y-3 animate-in fade-in duration-200">
-          {/* Métricas Rápidas */}
+          {/* Métricas Rápidas de HOJE */}
           <div className="grid grid-cols-3 gap-2">
             <div className="p-3 rounded-xl bg-dark-900 border border-dark-800">
               <span className="text-[10px] text-neutral-400 uppercase font-bold block">Hoje</span>
-              <span className="text-xl font-black text-white">{appointments.length}</span>
+              <span className="text-xl font-black text-white">{todayAppointments.length}</span>
               <span className="text-[10px] text-neutral-500 block">agendamentos</span>
             </div>
 
             <div className="p-3 rounded-xl bg-dark-900 border border-dark-800">
               <span className="text-[10px] text-neutral-400 uppercase font-bold block">Concluídos</span>
-              <span className="text-xl font-black text-emerald-400">{completedAppointments}</span>
-              <span className="text-[10px] text-neutral-500 block">atendidos</span>
+              <span className="text-xl font-black text-emerald-400">{todayCompleted}</span>
+              <span className="text-[10px] text-neutral-500 block">{todayAppointments.length > 0 ? `${todayCompleted} de ${todayAppointments.length} hoje` : 'atendidos hoje'}</span>
             </div>
 
             <div className="p-3 rounded-xl bg-dark-900 border border-dark-800">
-              <span className="text-[10px] text-neutral-400 uppercase font-bold block">Previsão</span>
-              <span className="text-lg font-black theme-text-accent">R$ {totalBilling.toFixed(0)}</span>
-              <span className="text-[10px] text-neutral-500 block">faturamento</span>
+              <span className="text-[10px] text-neutral-400 uppercase font-bold block">Previsão Hoje</span>
+              <span className="text-lg font-black theme-text-accent">R$ {todayBilling.toFixed(0)}</span>
+              <span className="text-[10px] text-neutral-500 block">faturamento hoje</span>
             </div>
           </div>
 
-          {/* Botão Novo Agendamento */}
+          {/* Filtros de Período da Agenda */}
+          <div className="flex items-center gap-1.5 p-1 bg-dark-900 border border-dark-800 rounded-xl overflow-x-auto">
+            <button
+              onClick={() => setAgendaFilter('hoje')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                agendaFilter === 'hoje'
+                  ? 'theme-gradient-accent text-dark-950 shadow-sm font-black'
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              <span>Hoje</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${agendaFilter === 'hoje' ? 'bg-dark-950/20 text-dark-950 font-black' : 'bg-dark-800 text-neutral-400'}`}>
+                {todayAppointments.length}
+              </span>
+            </button>
+            <button
+              onClick={() => setAgendaFilter('amanha')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                agendaFilter === 'amanha'
+                  ? 'theme-gradient-accent text-dark-950 shadow-sm font-black'
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              Amanhã
+            </button>
+            <button
+              onClick={() => setAgendaFilter('semana')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                agendaFilter === 'semana'
+                  ? 'theme-gradient-accent text-dark-950 shadow-sm font-black'
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              Esta Semana
+            </button>
+            <button
+              onClick={() => setAgendaFilter('todos')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                agendaFilter === 'todos'
+                  ? 'theme-gradient-accent text-dark-950 shadow-sm font-black'
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              <span>Todos</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${agendaFilter === 'todos' ? 'bg-dark-950/20 text-dark-950 font-black' : 'bg-dark-800 text-neutral-400'}`}>
+                {appointments.length}
+              </span>
+            </button>
+          </div>
+
+          {/* Cabeçalho da Lista & Botão Novo Agendamento */}
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-black uppercase tracking-wider text-neutral-300">
-              Clientes Agendados
+              {agendaFilter === 'hoje' ? 'Clientes de Hoje' : agendaFilter === 'amanha' ? 'Clientes de Amanhã' : agendaFilter === 'semana' ? 'Clientes desta Semana' : 'Todos os Agendamentos'}
             </h3>
             <button
               onClick={() => setIsAppointmentModalOpen(true)}
@@ -832,20 +941,36 @@ export default function BarberDashboard({ onBackToClientView }) {
 
           {/* Lista de Atendimentos */}
           <div className="space-y-2">
-            {appointments.length === 0 ? (
-              <div className="p-6 rounded-2xl bg-dark-900 border border-dark-800 text-center text-neutral-400 text-xs">
-                Nenhum agendamento para hoje ainda.
+            {filteredAgendaAppointments.length === 0 ? (
+              <div className="p-8 rounded-2xl bg-dark-900 border border-dark-800 text-center space-y-2">
+                <Calendar className="w-8 h-8 mx-auto theme-text-accent opacity-60" />
+                <p className="text-xs text-neutral-300 font-bold">
+                  {agendaFilter === 'hoje'
+                    ? 'Nenhum agendamento marcado para hoje.'
+                    : agendaFilter === 'amanha'
+                    ? 'Nenhum agendamento marcado para amanhã.'
+                    : agendaFilter === 'semana'
+                    ? 'Nenhum agendamento marcado para esta semana.'
+                    : 'Nenhum agendamento registrado no histórico.'}
+                </p>
+                <p className="text-[11px] text-neutral-500 max-w-xs mx-auto">
+                  {agendaFilter === 'hoje'
+                    ? 'Quando um cliente agendar pelo link ou você agendar no botão acima, ele aparecerá aqui na hora!'
+                    : 'Use o botão "Agendar Cliente" acima para registrar um horário ou aguarde os clientes agendarem.'}
+                </p>
               </div>
             ) : (
-              appointments.map((apt) => (
+              filteredAgendaAppointments.map((apt) => (
                 <div
                   key={apt.id}
                   className="p-3 rounded-2xl bg-card-gradient border border-dark-750 flex flex-col gap-2.5 transition-all"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 rounded-xl bg-dark-800 border border-dark-700 flex flex-col items-center justify-center theme-text-accent">
-                        <Clock className="w-3.5 h-3.5" />
+                      <div className="w-12 h-12 rounded-xl bg-dark-800 border border-dark-700 flex flex-col items-center justify-center theme-text-accent shrink-0 text-center px-1">
+                        <span className="text-[9px] font-extrabold text-neutral-400 uppercase tracking-tighter">
+                          {apt.date === todayStr ? 'Hoje' : apt.date === tomorrowStr ? 'Amanhã' : apt.date ? apt.date.split('-').reverse().slice(0, 2).join('/') : 'Hoje'}
+                        </span>
                         <span className="text-xs font-black">{apt.time}</span>
                       </div>
 
@@ -2400,17 +2525,30 @@ export default function BarberDashboard({ onBackToClientView }) {
                 />
               </div>
 
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-neutral-300 mb-1">
+                  WhatsApp:
+                </label>
+                <input
+                  type="text"
+                  placeholder="(99) 99999-9999"
+                  value={appointmentForm.phone}
+                  onChange={(e) => setAppointmentForm({ ...appointmentForm, phone: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-dark-850 border border-dark-700 text-white"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-[10px] uppercase font-bold text-neutral-300 mb-1">
-                    WhatsApp:
+                    Data:
                   </label>
                   <input
-                    type="text"
-                    placeholder="(99) 99999-9999"
-                    value={appointmentForm.phone}
-                    onChange={(e) => setAppointmentForm({ ...appointmentForm, phone: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-dark-850 border border-dark-700 text-white"
+                    type="date"
+                    required
+                    value={appointmentForm.date || todayStr}
+                    onChange={(e) => setAppointmentForm({ ...appointmentForm, date: e.target.value })}
+                    className="w-full p-2.5 rounded-xl bg-dark-850 border border-dark-700 text-white font-bold"
                   />
                 </div>
 
