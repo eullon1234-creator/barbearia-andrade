@@ -25,7 +25,7 @@ export const BARBERSHOP_DATA = {
   images: {
     hero: "https://res.cloudinary.com/dbgxrowf/image/upload/v1788787310/yjycnyzrp4vhz97v30yn.jpg",
     barber: "https://res.cloudinary.com/dbgxrowf/image/upload/v1788787539/mzs6ibs2n7ecqtjdexf5.jpg",
-    logoBadge: "https://res.cloudinary.com/dbgxrowf/image/upload/v1788710156/uwncw4vjinegoudfg3g8.jpg",
+    logoBadge: "https://res.cloudinary.com/dbgxrowf/image/upload/v1789133906/r9lu0bdzbzgsvfcjye4x.png",
   },
 
   // Horários de Atendimento oficiais
@@ -62,7 +62,7 @@ export const BARBERSHOP_DATA = {
       duration: '30 min',
       price: 30.00,
       description: 'Degradê na navalha ou máquina, fade limpo, corte social clássico ou moderno com finalização impecável.',
-      image: 'https://res.cloudinary.com/dbgxrowf/image/upload/v1788786513/fuvy3brcz3g93bswgiqg.jpg',
+      image: 'https://res.cloudinary.com/dbgxrowf/image/upload/v1789133906/r9lu0bdzbzgsvfcjye4x.png',
       popular: true,
     },
     {
@@ -72,7 +72,7 @@ export const BARBERSHOP_DATA = {
       duration: '25 min',
       price: 25.00,
       description: 'Design e alinhamento de barba com terapia de toalha quente, hidratação profunda e lâmina descartável.',
-      image: 'https://res.cloudinary.com/dbgxrowf/image/upload/v1788786717/rljznrepsob4iyungx1k.jpg',
+      image: 'https://res.cloudinary.com/dbgxrowf/image/upload/v1789133906/r9lu0bdzbzgsvfcjye4x.png',
       popular: false,
     },
     {
@@ -82,7 +82,7 @@ export const BARBERSHOP_DATA = {
       duration: '50 min',
       price: 50.00,
       description: 'A experiência completa: corte degradê de alta definição + barboterapia completa com produtos premium.',
-      image: 'https://res.cloudinary.com/dbgxrowf/image/upload/v1788787310/yjycnyzrp4vhz97v30yn.jpg',
+      image: 'https://res.cloudinary.com/dbgxrowf/image/upload/v1789133906/r9lu0bdzbzgsvfcjye4x.png',
       popular: true,
       badge: 'Mais Pedido',
     },
@@ -93,7 +93,7 @@ export const BARBERSHOP_DATA = {
       duration: '15 min',
       price: 10.00,
       description: 'Alinhamento na navalha ou pinça para harmonizar o olhar e dar acabamento limpo ao visual.',
-      image: 'https://res.cloudinary.com/dbgxrowf/image/upload/v1788786423/w3kbrojmttdpgfn6x5rp.jpg',
+      image: 'https://res.cloudinary.com/dbgxrowf/image/upload/v1789133906/r9lu0bdzbzgsvfcjye4x.png',
       popular: false,
     },
     {
@@ -103,7 +103,7 @@ export const BARBERSHOP_DATA = {
       duration: '90 min',
       price: 80.00,
       description: 'Descoloração global com matização profissional sem agredir os fios, para quem busca estilo ousado.',
-      image: 'https://res.cloudinary.com/dbgxrowf/image/upload/v1788787126/jtdmklcifivevfyegthm.jpg',
+      image: 'https://res.cloudinary.com/dbgxrowf/image/upload/v1789133906/r9lu0bdzbzgsvfcjye4x.png',
       popular: false,
     }
   ],
