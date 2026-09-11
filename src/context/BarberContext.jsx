@@ -13,7 +13,6 @@ const STORAGE_KEYS = {
   APPOINTMENTS: 'andrade_appointments_v2',
   THEME: 'andrade_theme_v2',
   GALLERY: 'andrade_gallery_v2',
-  FEED_POSTS: 'andrade_feed_posts_v1',
   EXTRAS: 'andrade_extras_v1',
   CLIENT_SESSION: 'andrade_current_client_v1',
   CLIENTS_DB: 'andrade_clients_db_v1',
@@ -253,72 +252,6 @@ export function BarberProvider({ children }) {
     return getSafeStorageItem(STORAGE_KEYS.APPOINTMENTS, 'safe_backup_appointments', []);
   });
 
-  // 8. Feed do Instagram & Lookbook de Cortes
-  const defaultFeedPosts = [
-    {
-      id: 'post-1',
-      serviceName: 'Combo Andrade (Corte + Barba)',
-      clientName: 'Marcos Vinícius',
-      clientInstagram: '@marcos_vini99',
-      image: 'https://res.cloudinary.com/dbgxrowf/image/upload/v1788787310/yjycnyzrp4vhz97v30yn.jpg',
-      caption: 'Alinhamento completo no padrão Andrade: Degradê navalhado + barba desenhada com toalha quente. Sextou do melhor jeito! 💈🔥',
-      likes: 84,
-      timeAgo: 'Hoje',
-      comments: [
-        { id: 'c-1', user: 'Marcos Vinícius', text: 'Ficou impecável irmão! Parabéns pelo trampo.' },
-        { id: 'c-2', user: 'Gabriel Souza', text: 'Amanhã às 15h é a minha vez na cadeira 🔥' }
-      ]
-    },
-    {
-      id: 'post-2',
-      serviceName: 'Corte Masculino / Degradê',
-      clientName: 'Lucas Ribeiro',
-      clientInstagram: '@lucas_ribeiroo',
-      image: 'https://res.cloudinary.com/dbgxrowf/image/upload/v1788786717/rljznrepsob4iyungx1k.jpg',
-      caption: 'Fade médio bem trabalhado na régua. Precisão em cada detalhe para valorizar o formato do rosto! ✂️⚡',
-      likes: 112,
-      timeAgo: 'Ontem',
-      comments: [
-        { id: 'c-3', user: 'Lucas Ribeiro', text: 'O melhor degradê do Povoado Cigana sem dúvidas!' }
-      ]
-    },
-    {
-      id: 'post-3',
-      serviceName: 'Platinado / Luzes / Nevou',
-      clientName: 'Eduardo Costa',
-      clientInstagram: '@dudu_costa10',
-      image: 'https://res.cloudinary.com/dbgxrowf/image/upload/v1788787126/jtdmklcifivevfyegthm.jpg',
-      caption: 'Nevou por aqui! ❄️ Platinado global com hidratação profunda e acabamento navalhado. Quem tem coragem de lançar esse estilo?',
-      likes: 147,
-      timeAgo: 'Há 3 dias',
-      comments: [
-        { id: 'c-4', user: 'Thiago N.', text: 'Ficou muito style! No fim de ano vou lançar o meu.' },
-        { id: 'c-5', user: 'Eduardo Costa', text: 'Sensacional, trabalho de mestre 👏' }
-      ]
-    },
-    {
-      id: 'post-4',
-      serviceName: 'Barba Alinhada / Toalha Quente',
-      clientName: 'Rafael Barbosa',
-      clientInstagram: '@rafa_barbosa',
-      image: 'https://res.cloudinary.com/dbgxrowf/image/upload/v1788786969/jfytpavizvdeqz9mgnsv.jpg',
-      caption: 'Terapia de barba com toalha quente, óleos essenciais e massagem facial. Mais que um corte, uma experiência de relaxamento! 🧖‍♂️✨',
-      likes: 96,
-      timeAgo: 'Há 5 dias',
-      comments: [
-        { id: 'c-6', user: 'Rafael Barbosa', text: 'Essa toalha quente relaxa demais, recomendo muito!' }
-      ]
-    }
-  ];
-
-  const [feedPosts, setFeedPosts] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.FEED_POSTS);
-      return saved ? JSON.parse(saved) : defaultFeedPosts;
-    } catch (e) {
-      return defaultFeedPosts;
-    }
-  });
 
   // Persistência
   useEffect(() => {
@@ -533,9 +466,6 @@ export function BarberProvider({ children }) {
     };
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.FEED_POSTS, JSON.stringify(feedPosts));
-  }, [feedPosts]);
 
   // 9. Serviços Adicionais (Upsell)
   const [extras, setExtras] = useState(() => {
@@ -879,71 +809,6 @@ export function BarberProvider({ children }) {
     }
   };
 
-  // Ações do Feed do Instagram & Lookbook
-  const addFeedPost = (newPost) => {
-    const created = {
-      id: 'post-' + Date.now(),
-      likes: 1,
-      timeAgo: 'Hoje',
-      comments: [],
-      ...newPost,
-    };
-    setFeedPosts(prev => {
-      const updated = [created, ...prev];
-      saveToFirestore('feed', updated);
-      return updated;
-    });
-  };
-
-  const deleteFeedPost = (id) => {
-    setFeedPosts(prev => {
-      const updated = prev.filter(p => p.id !== id);
-      saveToFirestore('feed', updated);
-      return updated;
-    });
-  };
-
-  const updateFeedPost = (id, updatedFields) => {
-    setFeedPosts(prev => {
-      const updated = prev.map(p => p.id === id ? { ...p, ...updatedFields } : p);
-      saveToFirestore('feed', updated);
-      return updated;
-    });
-  };
-
-  const toggleLikeFeedPost = (id) => {
-    setFeedPosts(prev => {
-      const updated = prev.map(p => {
-        if (p.id === id) {
-          const isLiked = !!p.isLiked;
-          return {
-            ...p,
-            isLiked: !isLiked,
-            likes: Math.max(0, (p.likes || 0) + (isLiked ? -1 : 1))
-          };
-        }
-        return p;
-      });
-      saveToFirestore('feed', updated);
-      return updated;
-    });
-  };
-
-  const addCommentToFeedPost = (postId, comment) => {
-    setFeedPosts(prev => {
-      const updated = prev.map(p => {
-        if (p.id === postId) {
-          return {
-            ...p,
-            comments: [...(p.comments || []), { id: 'c-' + Date.now(), ...comment }]
-          };
-        }
-        return p;
-      });
-      saveToFirestore('feed', updated);
-      return updated;
-    });
-  };
 
   const syncLocalToCloud = async () => {
     setIsCloudSyncing(true);
@@ -1066,12 +931,6 @@ export function BarberProvider({ children }) {
         addAppointment,
         deleteAppointment,
 
-        feedPosts,
-        addFeedPost,
-        updateFeedPost,
-        deleteFeedPost,
-        toggleLikeFeedPost,
-        addCommentToFeedPost,
 
         extras,
         setExtras,
