@@ -586,7 +586,7 @@ export default function BarberDashboard({ onBackToClientView }) {
     setEditingService(null);
     setServiceForm({
       name: '', category: 'cabelo', duration: '30 min', price: '', description: '', badge: '',
-      image: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=600&q=80'
+      image: 'https://res.cloudinary.com/dbgxrowf/image/upload/v1788786513/fuvy3brcz3g93bswgiqg.jpg'
     });
     setIsServiceModalOpen(true);
   };
@@ -1227,7 +1227,7 @@ export default function BarberDashboard({ onBackToClientView }) {
 
             <div className="relative h-32 rounded-xl overflow-hidden border border-dark-700">
               <img
-                src={profile.coverImage || "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=1200&q=80"}
+                src={profile.coverImage || "https://res.cloudinary.com/dbgxrowf/image/upload/v1788787310/yjycnyzrp4vhz97v30yn.jpg"}
                 alt="Capa"
                 className="w-full h-full object-cover"
               />

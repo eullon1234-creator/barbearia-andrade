@@ -188,7 +188,7 @@ export function BarberProvider({ children }) {
     bio: "Atendimento exclusivo com Saymon Andrade. O melhor degradê e terapia de barba da região.",
     image: BARBERSHOP_DATA.images.barber,
     coverImage: BARBERSHOP_DATA.images.hero,
-    logoImage: '',
+    logoImage: BARBERSHOP_DATA.images.logoBadge,
     specialties: [
       'Degradê / Fade Navalhado',
       'Barba na Toalha Quente',
@@ -664,7 +664,7 @@ export function BarberProvider({ children }) {
       duration: newService.duration || '30 min',
       price: parseFloat(newService.price) || 0,
       description: newService.description || '',
-      image: newService.image || 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=600&q=80',
+      image: newService.image || BARBERSHOP_DATA.images.hero,
       popular: !!newService.popular,
       badge: newService.badge || '',
     };

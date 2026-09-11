@@ -7,7 +7,7 @@ import { getWhatsAppUrl } from '../utils/phoneUtils';
 export default function Hero({ onOpenBooking }) {
   const { profile, scheduleConfig } = useBarber();
 
-  const coverImg = profile.coverImage || "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=1200&q=80";
+  const coverImg = profile.coverImage || "https://res.cloudinary.com/dbgxrowf/image/upload/v1788787310/yjycnyzrp4vhz97v30yn.jpg";
 
   return (
     <section className="relative overflow-hidden pt-2 pb-6 px-4">
