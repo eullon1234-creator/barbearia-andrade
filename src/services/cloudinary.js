@@ -5,8 +5,24 @@ export const CLOUDINARY_CONFIG = {
 };
 
 /**
+ * Converte qualquer arquivo ou Blob para DataURL (Base64) garantindo compatibilidade móvel
+ */
+async function toDataUrl(file) {
+  if (typeof file === 'string') return file;
+  if (typeof FileReader !== 'undefined') {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (err) => reject(new Error('Erro ao ler arquivo da imagem: ' + err));
+      reader.readAsDataURL(file);
+    });
+  }
+  return file;
+}
+
+/**
  * Faz o upload de um arquivo de imagem diretamente para o Cloudinary
- * @param {File} file - Arquivo de imagem vindo do input file ou câmera
+ * @param {File|Blob|string} file - Arquivo de imagem vindo do input file, câmera ou recorte
  * @returns {Promise<string>} - URL segura da imagem gerada pelo Cloudinary
  */
 export async function uploadImageToCloudinary(file) {
@@ -14,8 +30,10 @@ export async function uploadImageToCloudinary(file) {
     throw new Error('Nenhum arquivo fornecido para upload.');
   }
 
+  const fileData = await toDataUrl(file);
+
   const formData = new FormData();
-  formData.append('file', file);
+  formData.append('file', fileData);
   formData.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
 
   const response = await fetch(

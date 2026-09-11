@@ -207,11 +207,14 @@ export function BarberProvider({ children }) {
     }
   });
 
-  // 5. Galeria de Fotos do Espaço / Fachada
+  // 5. Galeria de Fotos do Espaço / Fachada / Cortes Reais
   const defaultGallery = [
-    'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=800&q=80',
+    'https://res.cloudinary.com/dbgxrowf/image/upload/v1788787310/yjycnyzrp4vhz97v30yn.jpg',
+    'https://res.cloudinary.com/dbgxrowf/image/upload/v1788787126/jtdmklcifivevfyegthm.jpg',
+    'https://res.cloudinary.com/dbgxrowf/image/upload/v1788786969/jfytpavizvdeqz9mgnsv.jpg',
+    'https://res.cloudinary.com/dbgxrowf/image/upload/v1788786717/rljznrepsob4iyungx1k.jpg',
+    'https://res.cloudinary.com/dbgxrowf/image/upload/v1788786513/fuvy3brcz3g93bswgiqg.jpg',
+    'https://res.cloudinary.com/dbgxrowf/image/upload/v1788786423/w3kbrojmttdpgfn6x5rp.jpg',
   ];
 
   const [galleryImages, setGalleryImages] = useState(() => {
@@ -264,7 +267,7 @@ export function BarberProvider({ children }) {
       serviceName: 'Combo Andrade (Corte + Barba)',
       clientName: 'Marcos Vinícius',
       clientInstagram: '@marcos_vini99',
-      image: 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=800&q=80',
+      image: 'https://res.cloudinary.com/dbgxrowf/image/upload/v1788787310/yjycnyzrp4vhz97v30yn.jpg',
       caption: 'Alinhamento completo no padrão Andrade: Degradê navalhado + barba desenhada com toalha quente. Sextou do melhor jeito! 💈🔥',
       likes: 84,
       timeAgo: 'Hoje',
@@ -278,7 +281,7 @@ export function BarberProvider({ children }) {
       serviceName: 'Corte Masculino / Degradê',
       clientName: 'Lucas Ribeiro',
       clientInstagram: '@lucas_ribeiroo',
-      image: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=800&q=80',
+      image: 'https://res.cloudinary.com/dbgxrowf/image/upload/v1788786717/rljznrepsob4iyungx1k.jpg',
       caption: 'Fade médio bem trabalhado na régua. Precisão em cada detalhe para valorizar o formato do rosto! ✂️⚡',
       likes: 112,
       timeAgo: 'Ontem',
@@ -291,7 +294,7 @@ export function BarberProvider({ children }) {
       serviceName: 'Platinado / Luzes / Nevou',
       clientName: 'Eduardo Costa',
       clientInstagram: '@dudu_costa10',
-      image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=80',
+      image: 'https://res.cloudinary.com/dbgxrowf/image/upload/v1788787126/jtdmklcifivevfyegthm.jpg',
       caption: 'Nevou por aqui! ❄️ Platinado global com hidratação profunda e acabamento navalhado. Quem tem coragem de lançar esse estilo?',
       likes: 147,
       timeAgo: 'Há 3 dias',
@@ -305,7 +308,7 @@ export function BarberProvider({ children }) {
       serviceName: 'Barba Alinhada / Toalha Quente',
       clientName: 'Rafael Barbosa',
       clientInstagram: '@rafa_barbosa',
-      image: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=800&q=80',
+      image: 'https://res.cloudinary.com/dbgxrowf/image/upload/v1788786969/jfytpavizvdeqz9mgnsv.jpg',
       caption: 'Terapia de barba com toalha quente, óleos essenciais e massagem facial. Mais que um corte, uma experiência de relaxamento! 🧖‍♂️✨',
       likes: 96,
       timeAgo: 'Há 5 dias',
