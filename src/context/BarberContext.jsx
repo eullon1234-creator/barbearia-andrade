@@ -406,22 +406,7 @@ export function BarberProvider({ children }) {
       console.warn(e);
     }
 
-    // 3. Feed de Fotos (Lookbook Estilo Instagram)
-    try {
-      const unsubFeed = onSnapshot(doc(firestoreDb, 'barbershop', 'feed'), (snap) => {
-        if (!isMounted) return;
-        if (snap.exists() && Array.isArray(snap.data()?.data)) {
-          const cloudFeed = snap.data().data;
-          setFeedPosts(cloudFeed);
-          localStorage.setItem(STORAGE_KEYS.FEED_POSTS, JSON.stringify(cloudFeed));
-        } else {
-          saveToFirestore('feed', feedPosts);
-        }
-      }, (err) => console.warn('[Firestore] Erro no feed:', err.message));
-      unsubs.push(unsubFeed);
-    } catch (e) {
-      console.warn(e);
-    }
+
 
     // 4. Galeria de Fotos
     try {

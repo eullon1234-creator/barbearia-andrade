@@ -11,8 +11,6 @@ import BottomBar from './components/BottomBar';
 import BookingModal from './components/BookingModal';
 import BarberDashboard from './components/BarberDashboard';
 import PwaInstallBanner from './components/PwaInstallBanner';
-import FeedInstagramLookbook from './components/FeedInstagramLookbook';
-import InstagramFeedView from './components/InstagramFeedView';
 import ReviewsSection from './components/ReviewsSection';
 import ClientActiveBookingBanner from './components/ClientActiveBookingBanner';
 import ClientAuthModal from './components/ClientAuthModal';
@@ -133,37 +131,18 @@ export default function App() {
           </main>
         ) : (
           /* ================= LINK PÚBLICO DO CLIENTE ================= */
-          clientTab === 'feed' ? (
-            /* Visualização Exclusiva da Aba do Instagram */
-            <>
-              <InstagramFeedView
-                onBackToHome={() => setClientTab('home')}
-                onOpenBooking={handleOpenBooking}
-              />
-              <BottomBar
-                onOpenBooking={handleOpenBooking}
-                clientTab={clientTab}
-                onSelectTab={setClientTab}
-                onOpenClientAuth={() => setIsClientAuthOpen(true)}
-                onOpenClientProfile={() => setIsClientProfileOpen(true)}
-              />
-            </>
-          ) : (
-            /* Visualização da Página Inicial da Barbearia */
-            <>
-              <Navbar
-                onOpenBooking={() => handleOpenBooking(null)}
-                clientTab={clientTab}
-                onSelectTab={setClientTab}
-                onOpenClientAuth={() => setIsClientAuthOpen(true)}
-                onOpenClientProfile={() => setIsClientProfileOpen(true)}
-              />
+          <>
+            <Navbar
+              onOpenBooking={() => handleOpenBooking(null)}
+              onOpenClientAuth={() => setIsClientAuthOpen(true)}
+              onOpenClientProfile={() => setIsClientProfileOpen(true)}
+            />
 
-              {/* Banner de Agendamento Ativo do Cliente */}
-              <ClientActiveBookingBanner onOpenBookingModal={handleOpenBooking} />
+            {/* Banner de Agendamento Ativo do Cliente */}
+            <ClientActiveBookingBanner onOpenBookingModal={handleOpenBooking} />
 
-              {/* Banner de Instalação PWA */}
-              <PwaInstallBanner />
+            {/* Banner de Instalação PWA */}
+            <PwaInstallBanner />
 
               {/* Conteúdo Principal do Cliente */}
               <main className="pb-16">
@@ -201,7 +180,6 @@ export default function App() {
                 />
               </main>
             </>
-          )
         )}
       </div>
 
