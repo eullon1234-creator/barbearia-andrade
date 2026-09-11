@@ -19,6 +19,29 @@ const STORAGE_KEYS = {
   CLIENTS_DB: 'andrade_clients_db_v1',
 };
 
+// Helper de segurança resiliente: carrega do cache local ou backup seguro antes de recorrer ao fallback
+const getSafeStorageItem = (primaryKey, backupKey, fallback) => {
+  try {
+    const saved = localStorage.getItem(primaryKey);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed && (typeof parsed !== 'object' || (Array.isArray(parsed) ? parsed.length > 0 : Object.keys(parsed).length > 0))) {
+        return parsed;
+      }
+    }
+    const backup = localStorage.getItem(backupKey);
+    if (backup) {
+      const parsedBackup = JSON.parse(backup);
+      if (parsedBackup && (typeof parsedBackup !== 'object' || (Array.isArray(parsedBackup) ? parsedBackup.length > 0 : Object.keys(parsedBackup).length > 0))) {
+        return parsedBackup;
+      }
+    }
+  } catch (e) {
+    console.warn(`[Segurança] Erro ao ler storage (${primaryKey}):`, e);
+  }
+  return fallback;
+};
+
 // Paletas de cores pré-configuradas para qualquer estilo de barbearia
 export const THEME_PRESETS = {
   gold: {
@@ -139,12 +162,7 @@ export function BarberProvider({ children }) {
 
   // 2. Serviços & Cortes
   const [services, setServices] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.SERVICES);
-      return saved ? JSON.parse(saved) : BARBERSHOP_DATA.services;
-    } catch (e) {
-      return BARBERSHOP_DATA.services;
-    }
+    return getSafeStorageItem(STORAGE_KEYS.SERVICES, 'safe_backup_services', BARBERSHOP_DATA.services);
   });
 
   // 3. Comodidades
@@ -158,12 +176,7 @@ export function BarberProvider({ children }) {
   ];
 
   const [amenities, setAmenities] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.AMENITIES);
-      return saved ? JSON.parse(saved) : defaultAmenities;
-    } catch (e) {
-      return defaultAmenities;
-    }
+    return getSafeStorageItem(STORAGE_KEYS.AMENITIES, 'safe_backup_amenities', defaultAmenities);
   });
 
   // 4. Perfil & Identidade da Barbearia (Totalmente customizável para qualquer barbearia)
@@ -199,12 +212,7 @@ export function BarberProvider({ children }) {
   };
 
   const [profile, setProfile] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.PROFILE);
-      return saved ? JSON.parse(saved) : defaultProfile;
-    } catch (e) {
-      return defaultProfile;
-    }
+    return getSafeStorageItem(STORAGE_KEYS.PROFILE, 'safe_backup_profile', defaultProfile);
   });
 
   // 5. Galeria de Fotos do Espaço / Fachada / Cortes Reais
@@ -218,12 +226,7 @@ export function BarberProvider({ children }) {
   ];
 
   const [galleryImages, setGalleryImages] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.GALLERY);
-      return saved ? JSON.parse(saved) : defaultGallery;
-    } catch (e) {
-      return defaultGallery;
-    }
+    return getSafeStorageItem(STORAGE_KEYS.GALLERY, 'safe_backup_gallery', defaultGallery);
   });
 
   // 6. Horários, Intervalos e Férias
@@ -242,22 +245,12 @@ export function BarberProvider({ children }) {
   };
 
   const [scheduleConfig, setScheduleConfig] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.SCHEDULE);
-      return saved ? JSON.parse(saved) : defaultSchedule;
-    } catch (e) {
-      return defaultSchedule;
-    }
+    return getSafeStorageItem(STORAGE_KEYS.SCHEDULE, 'safe_backup_schedule', defaultSchedule);
   });
 
   // 7. Agendamentos
   const [appointments, setAppointments] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.APPOINTMENTS);
-      return saved ? JSON.parse(saved) : BARBERSHOP_DATA.mockBarberAppointments;
-    } catch (e) {
-      return BARBERSHOP_DATA.mockBarberAppointments;
-    }
+    return getSafeStorageItem(STORAGE_KEYS.APPOINTMENTS, 'safe_backup_appointments', []);
   });
 
   // 8. Feed do Instagram & Lookbook de Cortes
@@ -357,12 +350,37 @@ export function BarberProvider({ children }) {
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
 
   const saveToFirestore = async (docId, rawData) => {
+    // 1. Trava anti-apagamento: Nunca envia dados nulos ou vazios
+    if (!rawData) {
+      console.warn(`[Segurança] Bloqueado envio de dados nulos para ${docId}`);
+      return;
+    }
+    if (Array.isArray(rawData) && rawData.length === 0 && (docId === 'services' || docId === 'gallery')) {
+      console.warn(`[Segurança] Bloqueado salvamento de lista vazia em ${docId} para prevenir perda de dados`);
+      return;
+    }
+
     try {
       const safeData = JSON.parse(JSON.stringify(rawData, (k, v) => (v === undefined ? null : v)));
+
+      // 2. Cria snapshot de segurança na coleção de backups do Firestore
+      try {
+        setDoc(doc(firestoreDb, 'backups', `${docId}_last_safe`), {
+          data: safeData,
+          savedAt: new Date().toISOString()
+        }, { merge: true }).catch(() => {});
+      } catch (e) {}
+
+      // 3. Grava no documento oficial da barbearia
       await setDoc(doc(firestoreDb, 'barbershop', docId), {
         data: safeData,
         updatedAt: new Date().toISOString()
       }, { merge: true });
+
+      // 4. Grava backup local imutável no navegador
+      try {
+        localStorage.setItem(`safe_backup_${docId}`, JSON.stringify(safeData));
+      } catch (e) {}
     } catch (err) {
       console.warn(`[Firestore] Erro ao salvar ${docId}:`, err.message);
     }
@@ -380,8 +398,7 @@ export function BarberProvider({ children }) {
           const cloudProfile = snap.data().data;
           setProfile(prev => ({ ...prev, ...cloudProfile }));
           localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(cloudProfile));
-        } else {
-          saveToFirestore('profile', profile);
+          localStorage.setItem('safe_backup_profile', JSON.stringify(cloudProfile));
         }
       }, (err) => console.warn('[Firestore] Erro no perfil:', err.message));
       unsubs.push(unsubProfile);
@@ -397,8 +414,7 @@ export function BarberProvider({ children }) {
           const cloudServices = snap.data().data;
           setServices(cloudServices);
           localStorage.setItem(STORAGE_KEYS.SERVICES, JSON.stringify(cloudServices));
-        } else {
-          saveToFirestore('services', services);
+          localStorage.setItem('safe_backup_services', JSON.stringify(cloudServices));
         }
       }, (err) => console.warn('[Firestore] Erro em serviços:', err.message));
       unsubs.push(unsubServices);
@@ -406,18 +422,15 @@ export function BarberProvider({ children }) {
       console.warn(e);
     }
 
-
-
-    // 4. Galeria de Fotos
+    // 3. Galeria de Fotos
     try {
       const unsubGallery = onSnapshot(doc(firestoreDb, 'barbershop', 'gallery'), (snap) => {
         if (!isMounted) return;
-        if (snap.exists() && Array.isArray(snap.data()?.data)) {
+        if (snap.exists() && Array.isArray(snap.data()?.data) && snap.data().data.length > 0) {
           const cloudGallery = snap.data().data;
           setGalleryImages(cloudGallery);
           localStorage.setItem(STORAGE_KEYS.GALLERY, JSON.stringify(cloudGallery));
-        } else {
-          saveToFirestore('gallery', galleryImages);
+          localStorage.setItem('safe_backup_gallery', JSON.stringify(cloudGallery));
         }
       }, (err) => console.warn('[Firestore] Erro na galeria:', err.message));
       unsubs.push(unsubGallery);
@@ -425,7 +438,7 @@ export function BarberProvider({ children }) {
       console.warn(e);
     }
 
-    // 5. Horários & Pausas
+    // 4. Horários & Pausas
     try {
       const unsubSchedule = onSnapshot(doc(firestoreDb, 'barbershop', 'schedule'), (snap) => {
         if (!isMounted) return;
@@ -433,8 +446,7 @@ export function BarberProvider({ children }) {
           const cloudSchedule = snap.data().data;
           setScheduleConfig(prev => ({ ...prev, ...cloudSchedule }));
           localStorage.setItem(STORAGE_KEYS.SCHEDULE, JSON.stringify(cloudSchedule));
-        } else {
-          saveToFirestore('schedule', scheduleConfig);
+          localStorage.setItem('safe_backup_schedule', JSON.stringify(cloudSchedule));
         }
       }, (err) => console.warn('[Firestore] Erro nos horários:', err.message));
       unsubs.push(unsubSchedule);
@@ -442,7 +454,7 @@ export function BarberProvider({ children }) {
       console.warn(e);
     }
 
-    // 6. Tema de Cores
+    // 5. Tema de Cores
     try {
       const unsubTheme = onSnapshot(doc(firestoreDb, 'barbershop', 'theme'), (snap) => {
         if (!isMounted) return;
@@ -450,8 +462,7 @@ export function BarberProvider({ children }) {
           const cloudTheme = snap.data().data;
           setTheme(cloudTheme);
           localStorage.setItem(STORAGE_KEYS.THEME, JSON.stringify(cloudTheme));
-        } else {
-          saveToFirestore('theme', theme);
+          localStorage.setItem('safe_backup_theme', JSON.stringify(cloudTheme));
         }
       }, (err) => console.warn('[Firestore] Erro no tema:', err.message));
       unsubs.push(unsubTheme);
@@ -459,7 +470,7 @@ export function BarberProvider({ children }) {
       console.warn(e);
     }
 
-    // 7. Agendamentos em Tempo Real
+    // 6. Agendamentos em Tempo Real
     try {
       const colRef = collection(firestoreDb, 'appointments');
       const unsubApts = onSnapshot(colRef, (snapshot) => {
@@ -492,9 +503,21 @@ export function BarberProvider({ children }) {
           });
           setAppointments(list);
           localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(list));
+          localStorage.setItem('safe_backup_appointments', JSON.stringify(list));
         } else {
+          // Trava de segurança: Se vier vazio por erro ou timeout, restaura do safe_backup antes de zerar
+          try {
+            const safeBackup = localStorage.getItem('safe_backup_appointments');
+            if (safeBackup) {
+              const parsed = JSON.parse(safeBackup);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                console.warn('[Segurança] Firestore appointments vazio recebido, dados protegidos preservados.');
+                setAppointments(parsed);
+                return;
+              }
+            }
+          } catch (e) {}
           setAppointments([]);
-          localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify([]));
         }
       }, (err) => {
         console.warn('[Firestore] Erro em agendamentos:', err.message);
@@ -925,13 +948,18 @@ export function BarberProvider({ children }) {
   const syncLocalToCloud = async () => {
     setIsCloudSyncing(true);
     try {
+      // Validação de integridade antes do envio
+      if (!profile || !profile.name || !Array.isArray(services) || services.length === 0) {
+        console.warn('[Segurança] Bloqueada sincronização com dados locais incompletos ou vazios.');
+        return false;
+      }
+
       await Promise.all([
         saveToFirestore('profile', profile),
         saveToFirestore('services', services),
         saveToFirestore('amenities', amenities),
         saveToFirestore('gallery', galleryImages),
         saveToFirestore('schedule', scheduleConfig),
-        saveToFirestore('feed', feedPosts),
         saveToFirestore('theme', theme),
       ]);
       return true;
@@ -952,14 +980,13 @@ export function BarberProvider({ children }) {
       amenities,
       galleryImages,
       scheduleConfig,
-      feedPosts,
     };
     const jsonStr = JSON.stringify(config, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `config_${profile.name.toLowerCase().replace(/\s+/g, '_')}.json`;
+    a.download = `backup_barbearia_andrade_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -969,11 +996,10 @@ export function BarberProvider({ children }) {
       const data = JSON.parse(jsonString);
       if (data.theme) setTheme(data.theme);
       if (data.profile) setProfile(data.profile);
-      if (data.services) setServices(data.services);
+      if (data.services && Array.isArray(data.services) && data.services.length > 0) setServices(data.services);
       if (data.amenities) setAmenities(data.amenities);
       if (data.galleryImages) setGalleryImages(data.galleryImages);
       if (data.scheduleConfig) setScheduleConfig(data.scheduleConfig);
-      if (data.feedPosts) setFeedPosts(data.feedPosts);
       return true;
     } catch (e) {
       alert('Arquivo JSON inválido.');
@@ -981,8 +1007,11 @@ export function BarberProvider({ children }) {
     }
   };
 
-  // Reset Total para Dados Iniciais
+  // Reset Total para Dados Iniciais (Apenas Local, NUNCA afeta a nuvem do Firebase)
   const resetToFactoryDefaults = () => {
+    if (!confirm('Atenção: Restaurar padrões iniciais afetará apenas este navegador. Os dados oficiais salvos no Firebase continuarão 100% seguros. Deseja continuar?')) {
+      return;
+    }
     localStorage.removeItem(STORAGE_KEYS.SERVICES);
     localStorage.removeItem(STORAGE_KEYS.AMENITIES);
     localStorage.removeItem(STORAGE_KEYS.PROFILE);
@@ -997,7 +1026,7 @@ export function BarberProvider({ children }) {
     setProfile(defaultProfile);
     setGalleryImages(defaultGallery);
     setScheduleConfig(defaultSchedule);
-    setAppointments(BARBERSHOP_DATA.mockBarberAppointments);
+    setAppointments([]);
   };
 
   return (

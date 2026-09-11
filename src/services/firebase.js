@@ -17,4 +17,7 @@ const app = initializeApp(firebaseConfig);
 // Inicializa o Firestore Database
 export const db = getFirestore(app);
 
+// Identificador único da Barbearia Andrade para proteção contra sobreposição
+export const BARBERSHOP_ID = "barbearia-andrade";
+
 export default app;
